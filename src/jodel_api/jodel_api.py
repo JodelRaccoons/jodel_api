@@ -24,8 +24,8 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'HtJoqSysGFQXgFqYZRgwbpcFVAzLFSioVKTCwMcL'.encode('ascii')
-    version = '4.79.1'
+    secret = 'keDrEjvYbuapuKosEnDQjFEVyYvWFBbjTGPyycOH'.encode('ascii')
+    version = '5.12.1'
     secret_legacy = 'hyTBJcvtpDLSgGUWjybbYUNKSSoVvMcfdjtjiQvf'.encode('ascii')
     version_legacy = '4.47.0'
 
@@ -66,7 +66,7 @@ class JodelAccount:
 
         for _ in range(3):
             self._sign_request(method, url, headers, params, payload)
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,**kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
@@ -189,19 +189,25 @@ class JodelAccount:
     # GET POSTS METHODS #
     # ################# #
 
-    def _get_posts(self, post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, pictures=False, **kwargs):
+    def _get_posts(self,post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, pictures=False,lat=None, lng=None, timeRange=None, **kwargs):
+
         category = "mine" if mine else "hashtag" if hashtag else "channel" if channel else "location"
+
         url_params = {"api_version": "v2" if not (hashtag or channel or pictures) else "v3",
                       "pictures_posts": "pictures" if pictures else "posts",
                       "category": category,
                       "post_types": post_types}
-        params = {"lat": self.lat,
-                  "lng": self.lng,
+        params = {"lat": lat,
+                  "lng": lng,
                   "skip": skip,
                   "limit": limit,
                   "hashtag": hashtag,
                   "channel": channel,
                   "after": after}
+
+        if timeRange:
+            params["timeRange"] = timeRange
+
 
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
@@ -209,7 +215,10 @@ class JodelAccount:
     def get_posts_recent(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('', skip, limit, after, mine, hashtag, channel, **kwargs)
 
-    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
+    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, timeRange=None, lat=None, lng=None, **kwargs):
+        return self._get_posts('popular', skip=skip, limit=limit, after=after, mine=mine, hashtag=hashtag, channel=channel, timeRange=timeRange, lat=lat, lng=lng, **kwargs)
+
+    def get_posts_popular_today(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('popular', skip, limit, after, mine, hashtag, channel, **kwargs)
 
     def get_posts_discussed(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
