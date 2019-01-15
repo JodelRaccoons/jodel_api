@@ -15,6 +15,7 @@ import requests
 from urllib.parse import urlparse
 from jodel_api import gcmhack
 import time
+import collections
 
 s = requests.Session()
 
@@ -24,8 +25,8 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'EUJTncIwqWKzUiqFzbzxfhneutfkUgcFENCIcceH'.encode('ascii')
-    version = '5.15.2'
+    secret = 'TNHfHCaBjTvtrjEFsAFQyrHapTHdKbJVcraxnTzd'.encode('ascii')
+    version = '5.16.1'
     secret_legacy = 'hyTBJcvtpDLSgGUWjybbYUNKSSoVvMcfdjtjiQvf'.encode('ascii')
     version_legacy = '4.47.0'
 
@@ -33,16 +34,10 @@ class JodelAccount:
     access_token = None
     device_uid = None
 
-    def __init__(self, lat, lng, city, _secret=None, _version=None, country=None, name=None, update_location=True,
+    def __init__(self, lat, lng, city, country=None, name=None, update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
-
-        if _secret:
-            secret = _secret
-
-        if _version:
-            version = _version
 
         self.is_legacy = is_legacy
         if device_uid:
@@ -65,14 +60,17 @@ class JodelAccount:
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'Jodel/{} Dalvik/2.1.0 (Linux; U; Android 5.1.1; )'.format(self.version),
-                   'Accept-Encoding': 'gzip',
-                   'Content-Type': 'application/json; charset=UTF-8',
-                   'Authorization': 'Bearer ' + self.access_token if self.access_token else None}
+        headers = {'User-Agent': 'Jodel/{} Dalvik/2.1.0 (Linux; U; Android 8.0.0; )'.format(self.version),
+                   'Accept-Encoding': 'gzip, deflate',
+                   'Content-Type': 'application/json; charset=UTF-8'}
 
+        if self.access_token:
+            headers['Authorization'] = 'Bearer ' + self.access_token
+
+        print('Requesting {} with payload {}'.format(url, payload))
         for _ in range(3):
             self._sign_request(method, url, headers, params, payload)
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,**kwargs)
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
@@ -86,14 +84,17 @@ class JodelAccount:
     def _sign_request(self, method, url, headers, params=None, payload=None):
         timestamp = datetime.datetime.utcnow().isoformat()[:-7] + "Z"
 
+
         req = [method,
                urlparse(url).netloc,
                "443",
                urlparse(url).path,
-               self.access_token if self.access_token else "",
+               self.access_token if self.access_token else "%",
                timestamp,
                "%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items())),
                json.dumps(payload) if payload else ""]
+
+
 
         if self.is_legacy:
             secret, version = self.secret_legacy, self.version_legacy
@@ -101,7 +102,6 @@ class JodelAccount:
             secret, version = self.secret, self.version
 
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-
         headers['X-Authorization'] = 'HMAC ' + signature
         headers['X-Client-Type'] = 'android_{}'.format(version)
         headers['X-Timestamp'] = timestamp
@@ -109,11 +109,10 @@ class JodelAccount:
 
     @staticmethod
     def _get_location_dict(lat, lng, city, country=None, name=None):
-        return {"loc_accuracy": 0.0,
+        return {"country": country if country else "DE",
                 "city": city,
                 "loc_coordinates": {"lat": lat, "lng": lng},
-                "country": country if country else "DE",
-                "name": name if name else city}
+                "loc_accuracy": 15.457}
 
     def get_account_data(self):
         return {'expiration_date': self.expiration_date, 'distinct_id': self.distinct_id,
@@ -128,11 +127,20 @@ class JodelAccount:
             self.is_legacy = False
             self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
 
-        payload = {"client_id": self.client_id,
+        payload = {"location": self.location_dict,
+                   "registration_data": {
+                       "channel": "",
+                       "provider": "branch.io",
+                       "campaign": "",
+                       "feature": "",
+                       "referrer_branch_id": "",
+                       "referrer_id": ""
+                   },
+                   "client_id": self.client_id,
                    "device_uid": self.device_uid,
-                   "location": self.location_dict}
+                   "language": "de-DE"}
 
-        resp = self._send_request("POST", "/v2/users", payload=payload, **kwargs)
+        resp = self._send_request("POST", "/v2/users/", payload=payload, **kwargs)
         if resp[0] == 200:
             self.access_token = resp[1]['access_token']
             self.expiration_date = resp[1]['expiration_date']
@@ -195,25 +203,19 @@ class JodelAccount:
     # GET POSTS METHODS #
     # ################# #
 
-    def _get_posts(self,post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, pictures=False,lat=None, lng=None, timeRange=None, **kwargs):
-
+    def _get_posts(self, post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, pictures=False, **kwargs):
         category = "mine" if mine else "hashtag" if hashtag else "channel" if channel else "location"
-
         url_params = {"api_version": "v2" if not (hashtag or channel or pictures) else "v3",
                       "pictures_posts": "pictures" if pictures else "posts",
                       "category": category,
                       "post_types": post_types}
-        params = {"lat": lat,
-                  "lng": lng,
+        params = {"lat": self.lat,
+                  "lng": self.lng,
                   "skip": skip,
                   "limit": limit,
                   "hashtag": hashtag,
                   "channel": channel,
                   "after": after}
-
-        if timeRange:
-            params["timeRange"] = timeRange
-
 
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
@@ -221,10 +223,7 @@ class JodelAccount:
     def get_posts_recent(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('', skip, limit, after, mine, hashtag, channel, **kwargs)
 
-    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, timeRange=None, lat=None, lng=None, **kwargs):
-        return self._get_posts('popular', skip=skip, limit=limit, after=after, mine=mine, hashtag=hashtag, channel=channel, timeRange=timeRange, lat=lat, lng=lng, **kwargs)
-
-    def get_posts_popular_today(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
+    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('popular', skip, limit, after, mine, hashtag, channel, **kwargs)
 
     def get_posts_discussed(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
