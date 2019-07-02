@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, print_function, unicode_literals)
 from builtins import input
 from future.standard_library import install_aliases
+
 install_aliases()
 
 import base64
@@ -30,14 +31,16 @@ class JodelAccount:
     secret_legacy = 'hyTBJcvtpDLSgGUWjybbYUNKSSoVvMcfdjtjiQvf'.encode('ascii')
     version_legacy = '4.47.0'
 
-
     access_token = None
     device_uid = None
 
-    def __init__(self, lat, lng, city, country=None, name=None, update_location=True,
+    def __init__(self, lat, lng, city,  _secret=secret, _version=version, country=None, name=None, update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
+
+        self.secret = _secret.encode('ascii')
+        self.version = _version
 
         self.is_legacy = is_legacy
         if device_uid:
@@ -67,7 +70,7 @@ class JodelAccount:
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
 
-        print('Requesting {} with payload {}'.format(url, payload))
+        #print('Requesting {} with parameters {}'.format(url, params))
         for _ in range(3):
             self._sign_request(method, url, headers, params, payload)
             resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
@@ -84,7 +87,6 @@ class JodelAccount:
     def _sign_request(self, method, url, headers, params=None, payload=None):
         timestamp = datetime.datetime.utcnow().isoformat()[:-7] + "Z"
 
-
         req = [method,
                urlparse(url).netloc,
                "443",
@@ -93,8 +95,6 @@ class JodelAccount:
                timestamp,
                "%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items())),
                json.dumps(payload) if payload else ""]
-
-
 
         if self.is_legacy:
             secret, version = self.secret_legacy, self.version_legacy
@@ -162,11 +162,11 @@ class JodelAccount:
         return resp
 
     def send_push_token(self, push_token, **kwargs):
-        payload={"client_id": self.client_id, "push_token": push_token}
+        payload = {"client_id": self.client_id, "push_token": push_token}
         return self._send_request("PUT", "/v2/users/pushToken", payload=payload, **kwargs)
 
     def verify_push(self, server_time, verification_code, **kwargs):
-        payload={"server_time": server_time, "verification_code": verification_code}
+        payload = {"server_time": server_time, "verification_code": verification_code}
         return self._send_request("POST", "/v3/user/verification/push", payload=payload, **kwargs)
 
     def verify(self, android_account=None, **kwargs):
@@ -203,19 +203,30 @@ class JodelAccount:
     # GET POSTS METHODS #
     # ################# #
 
-    def _get_posts(self, post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, pictures=False, **kwargs):
+    def _get_posts(self, post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None,
+                   pictures=False, lat=None, lng=None, timeRange=None,
+                   distance='dynamic', feed_token=None, page=0, home=False, skipHometown=False, **kwargs):
+
         category = "mine" if mine else "hashtag" if hashtag else "channel" if channel else "location"
+
         url_params = {"api_version": "v2" if not (hashtag or channel or pictures) else "v3",
                       "pictures_posts": "pictures" if pictures else "posts",
                       "category": category,
                       "post_types": post_types}
-        params = {"lat": self.lat,
-                  "lng": self.lng,
-                  "skip": skip,
-                  "limit": limit,
-                  "hashtag": hashtag,
-                  "channel": channel,
-                  "after": after}
+        params = {
+            "channels": True,
+            "after": after,
+            "skipHometown": skipHometown,
+            "distance": distance,
+            "feed_token": feed_token,
+            "page": page,
+            "lat": lat,
+            "home": home,
+            "lng": lng
+        }
+
+        if timeRange:
+            params["timeRange"] = timeRange
 
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
@@ -223,8 +234,21 @@ class JodelAccount:
     def get_posts_recent(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('', skip, limit, after, mine, hashtag, channel, **kwargs)
 
-    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
-        return self._get_posts('popular', skip, limit, after, mine, hashtag, channel, **kwargs)
+    '''channels = true &
+    after = 5
+    cd99400613db6001cba9861 &
+    skipHometown = false &
+    distance = dynamic &
+    feed_token = &
+    page = 0 &
+    lat = 49.88315200805664 &
+    home = false &
+    lng = 8.669074058532715'''
+
+    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, timeRange=None,
+                          lat=None, lng=None, **kwargs):
+        return self._get_posts('popular', skip=skip, limit=limit, after=after, mine=mine, hashtag=hashtag,
+                               channel=channel, timeRange=timeRange, lat=lat, lng=lng, **kwargs)
 
     def get_posts_discussed(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('discussed', skip, limit, after, mine, hashtag, channel, **kwargs)
@@ -371,7 +395,8 @@ class JodelAccount:
         if gender not in ["m", "f", None]:
             raise ValueError("gender must be either m or f.")
 
-        return self._send_request("PUT", "/v3/user/profile", payload={"user_type": user_type, "gender": gender, "age": age}, **kwargs)
+        return self._send_request("PUT", "/v3/user/profile",
+                                  payload={"user_type": user_type, "gender": gender, "age": age}, **kwargs)
 
     def get_karma(self, **kwargs):
         return self._send_request("GET", "/v2/users/karma", **kwargs)
