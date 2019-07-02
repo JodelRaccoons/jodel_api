@@ -1,9 +1,11 @@
-# THIS IS JUST A FORK OF THE OFFICIAL PROJECT 
-- Some minor changes to make it work again
-- Updated HMAC-Key
+THIS IS JUST A FORK OF THE OFFICIAL PROJECT 
+========
 
-Below is the original readme
-
+- Some minor changes to make it work again  
+- Updated HMAC-Key  
+  
+Below is the original readme  
+  
 Jodel API
 =========
 
