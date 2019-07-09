@@ -26,20 +26,21 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'TNHfHCaBjTvtrjEFsAFQyrHapTHdKbJVcraxnTzd'.encode('ascii')
-    version = '5.16.1'
+    secret = 'QhXdaKITxOYpybeoxSfurIFFfyeqqOYIlIagTCWi'.encode('ascii')
+    version = '5.40.0'
     secret_legacy = 'hyTBJcvtpDLSgGUWjybbYUNKSSoVvMcfdjtjiQvf'.encode('ascii')
     version_legacy = '4.47.0'
 
     access_token = None
     device_uid = None
 
-    def __init__(self, lat, lng, city,  _secret=secret, _version=version, country=None, name=None, update_location=True,
+    def __init__(self, lat, lng, city, pushtoken=None, _secret=secret, _version=version, country=None, name=None, update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
 
-        self.secret = _secret.encode('ascii')
+        #if _secret:
+         #   self.secret = _secret.encode('ascii')
         self.version = _version
 
         self.is_legacy = is_legacy
@@ -57,23 +58,42 @@ class JodelAccount:
                     raise Exception("Error updating location: " + str(r))
 
         else:
-            r = self.refresh_all_tokens(**kwargs)
+            r = self.refresh_all_tokens(pushtoken, **kwargs)
             if r[0] != 200:
                 raise Exception("Error creating new account: " + str(r))
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'Jodel/{} Dalvik/2.1.0 (Linux; U; Android 8.0.0; )'.format(self.version),
-                   'Accept-Encoding': 'gzip, deflate',
-                   'Content-Type': 'application/json; charset=UTF-8'}
-
+        headers = {'User-Agent': 'Jodel/{} Dalvik/2.1.0 (Linux; U; Android 8.0.0; )'.format(self.version)}
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
+        if 'v2/users' not in endpoint:
+            headers['X-Location'] = '{0:.4f};{1:.4f}'.format(self.lat,self.lng)
 
-        #print('Requesting {} with parameters {}'.format(url, params))
+
+        if 'upvote' in endpoint and params is None:
+            params = dict()
+            params['home'] = False
+
+
+        if payload is None:
+            payload = {}
+
         for _ in range(3):
             self._sign_request(method, url, headers, params, payload)
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
+            headers['Content-Type'] = 'application/json; charset=UTF-8'
+            headers['Accept-Encoding'] = 'gzip, deflate'
+            #print('Requesting {}'.format(url, payload))
+            #print('     Endpoint: {}'.format(endpoint))
+            #print('     Payload: {}'.format(payload))
+            #print('     Method: {}'.format(method))
+            #print('     Headers: {}'.format(headers))
+            #print('     Parameters: {}'.format(params))
+            burp = {'http' : '127.0.0.1:8080',
+                    'https' : '127.0.0.1:8080'}
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
+                             #proxies= burp, verify=False,
+                             **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
@@ -91,21 +111,27 @@ class JodelAccount:
                urlparse(url).netloc,
                "443",
                urlparse(url).path,
-               self.access_token if self.access_token else "%",
-               timestamp,
-               "%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items())),
-               json.dumps(payload) if payload else ""]
+               self.access_token if self.access_token else "%"]
+        if 'v2/users' not in url:
+            req.append('{0:.4f};{1:.4f}'.format(self.lat,self.lng))
+        req.append(timestamp),
+        req.append("%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items()))),
+        req.append(json.dumps(payload) if payload else '{}')
 
         if self.is_legacy:
             secret, version = self.secret_legacy, self.version_legacy
         else:
             secret, version = self.secret, self.version
 
+        #hmac_input = "%".join(req)
+        #print('HMAC Input: {}', hmac_input.encode("utf-8"))
+        #print('HMAC Secret: {}', secret)
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Authorization'] = 'HMAC ' + signature
+        #print('HMAC Signature: {}'.format(signature))
         headers['X-Client-Type'] = 'android_{}'.format(version)
-        headers['X-Timestamp'] = timestamp
         headers['X-Api-Version'] = '0.2'
+        headers['X-Timestamp'] = timestamp
+        headers['X-Authorization'] = 'HMAC ' + signature
 
     @staticmethod
     def _get_location_dict(lat, lng, city, country=None, name=None):
@@ -119,7 +145,9 @@ class JodelAccount:
                 'refresh_token': self.refresh_token, 'device_uid': self.device_uid, 'access_token': self.access_token,
                 'is_legacy': self.is_legacy}
 
-    def refresh_all_tokens(self, **kwargs):
+    def refresh_all_tokens(self, pushToken, **kwargs):
+        if pushToken is None:
+            pushToken = 'Lulululululu'
         """ Creates a new account with random ID if self.device_uid is not set. Otherwise renews all tokens of the
         account with ID = self.device_uid. """
         if not self.device_uid:
@@ -128,17 +156,20 @@ class JodelAccount:
             self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
 
         payload = {"location": self.location_dict,
+                   "iid": pushToken,
+                   "client_id": self.client_id,
                    "registration_data": {
                        "channel": "",
-                       "provider": "branch.io",
+                       "referrer_id": "",
                        "campaign": "",
                        "feature": "",
-                       "referrer_branch_id": "",
-                       "referrer_id": ""
+                       "provider": "branch.io",
+                       "referrer_branch_id": ""
                    },
-                   "client_id": self.client_id,
                    "device_uid": self.device_uid,
                    "language": "de-DE"}
+
+        print('Creating account with data {}'.format(payload))
 
         resp = self._send_request("POST", "/v2/users/", payload=payload, **kwargs)
         if resp[0] == 200:
@@ -306,7 +337,7 @@ class JodelAccount:
                                   params={'details': 'true', 'reply': skip}, **kwargs)
 
     def upvote(self, post_id, **kwargs):
-        return self._send_request("PUT", '/v2/posts/{}/upvote/'.format(post_id), **kwargs)
+        return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), **kwargs)
 
     def downvote(self, post_id, **kwargs):
         return self._send_request("PUT", '/v2/posts/{}/downvote/'.format(post_id), **kwargs)
