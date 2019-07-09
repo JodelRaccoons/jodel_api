@@ -15,6 +15,7 @@ from jodel_api.protos import mcs_pb2
 import select
 import struct
 
+
 class GcmException(Exception):
     pass
 
@@ -65,7 +66,7 @@ class AndroidAccount:
                 'device': str(self.android_id),
                 'sender': '425112442765',
                 'X-appid': "".join(random.choice(string.ascii_letters + string.digits) for _ in range(11)),
-                'X-scope': 'GCM' }
+                'X-scope': 'GCM'}
 
         r = self.session.post("https://android.clients.google.com/c2dm/register3", headers=headers, data=data, **kwargs)
         if r.status_code == 200 and "token" in r.text:
@@ -87,12 +88,14 @@ class AndroidAccount:
                 if not self.responseTag:
                     self.responseTag = ord(self._rcv_exact(1))
                     self.length = varint.decode_stream(self.sock)
-                
+
                 msg = self._rcv_exact(self.length)
+                #print('ResponseTag: {}'.format(self.responseTag))
+                #print('GCMHack got from server {}'.format(msg))
                 self.counter += 1
 
                 if self.responseTag == 3:
-                    pass # login
+                    pass  # login
 
                 elif self.responseTag == 4:
                     raise Exception("socket closed by server")
@@ -100,23 +103,27 @@ class AndroidAccount:
                 elif self.responseTag == 8:
                     dms = mcs_pb2.DataMessageStanza()
                     dms.ParseFromString(msg)
+                    #print("[DMS] Got category {}".format(dms.category))
+
 
                     message_type, data = "", None
                     for app_data in dms.app_data:
-                        if app_data.key == "message_type_id":
+                        #print("[DMS] Got app_data {}".format(app_data))
+                        if app_data.key == "type":
                             message_type = app_data.value
                         elif app_data.key == "payload":
                             data = app_data.value
 
-                    if dms.category == "com.tellm.android.app" and message_type == "16":
+                    if dms.category == "com.tellm.android.app" and message_type == "silent_verification":
                         verification_data = data
+                        #print("Received verification data: {}".format(verification_data))
 
                 self.responseTag, self.length = 0, 0
 
         except socket.timeout:
             self._gcm_send_heartbeat()
         except Exception:
-            # maybe the socket was closed because we timed out in between calls or 
+            # maybe the socket was closed because we timed out in between calls or
             # the connection was interrupted. We close the socket and try to reopen.
             try:
                 self.sock.close()
@@ -176,4 +183,3 @@ class AndroidAccount:
 
         data = lr.SerializeToString()
         self.sock.sendall(struct.pack('BB', 41, 2) + varint.encode(len(data)) + data)
-
