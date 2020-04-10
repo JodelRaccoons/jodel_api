@@ -53,7 +53,7 @@ class TestUnverifiedAccount:
     def test_refresh_access_token(self):
         r = self.j.refresh_access_token()
         assert r[0] == 200
-        assert set(r[1].keys()) == set(["expiration_date", "token_type", "expires_in", "access_token"])
+        assert set(r[1].keys()) == {"expiration_date", "token_type", "expires_in", "access_token"}
 
     def test_set_location(self):
         r = self.j.set_location(lat + uniform(-0.01, 0.01), lng + uniform(-0.01, 0.01), city)
@@ -135,7 +135,7 @@ class TestUnverifiedAccount:
     def test_set_get_config(self):
         user_type = choice(["high_school", "high_school_graduate", "student", "apprentice", "employee", "other"])
         r = self.j.set_user_profile(user_type=user_type, gender=choice(['m', 'f']))
-        assert r[0] == 204
+        assert r[0] == 200
 
         r = self.j.get_user_config()
         print(r)

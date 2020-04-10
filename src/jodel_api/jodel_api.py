@@ -26,21 +26,18 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'QhXdaKITxOYpybeoxSfurIFFfyeqqOYIlIagTCWi'.encode('ascii')
-    version = '5.40.0'
-    secret_legacy = 'hyTBJcvtpDLSgGUWjybbYUNKSSoVvMcfdjtjiQvf'.encode('ascii')
-    version_legacy = '4.47.0'
+    secret = 'SzsuLtrabXwYuAqZoAmvFypvZdZrYydEOCqoORiy'.encode('ascii')
+    version = '5.77.0'
 
     access_token = None
     device_uid = None
 
-    def __init__(self, lat, lng, city, pushtoken=None, _secret=secret, _version=version, country=None, name=None, update_location=True,
+    def __init__(self, lat, lng, city, pushtoken=None, _secret=secret, _version=version, country=None, name=None,
+                 update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
 
-        #if _secret:
-         #   self.secret = _secret.encode('ascii')
         self.version = _version
 
         self.is_legacy = is_legacy
@@ -68,13 +65,11 @@ class JodelAccount:
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
         if 'v2/users' not in endpoint:
-            headers['X-Location'] = '{0:.4f};{1:.4f}'.format(self.lat,self.lng)
-
+            headers['X-Location'] = '{0:.4f};{1:.4f}'.format(self.lat, self.lng)
 
         if 'upvote' in endpoint and params is None:
             params = dict()
             params['home'] = False
-
 
         if payload is None:
             payload = {}
@@ -83,16 +78,16 @@ class JodelAccount:
             self._sign_request(method, url, headers, params, payload)
             headers['Content-Type'] = 'application/json; charset=UTF-8'
             headers['Accept-Encoding'] = 'gzip, deflate'
-            #print('Requesting {}'.format(url, payload))
-            #print('     Endpoint: {}'.format(endpoint))
-            #print('     Payload: {}'.format(payload))
-            #print('     Method: {}'.format(method))
-            #print('     Headers: {}'.format(headers))
-            #print('     Parameters: {}'.format(params))
-            burp = {'http' : '127.0.0.1:8080',
-                    'https' : '127.0.0.1:8080'}
+            # print('Requesting {}'.format(url, payload))
+            # print('     Endpoint: {}'.format(endpoint))
+            # print('     Payload: {}'.format(payload))
+            # print('     Method: {}'.format(method))
+            # print('     Headers: {}'.format(headers))
+            # print('     Parameters: {}'.format(params))
+            burp = {'http': '127.0.0.1:8080',
+                    'https': '127.0.0.1:8080'}
             resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
-                             #proxies= burp, verify=False,
+                             # proxies= burp, verify=False,
                              **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
@@ -113,21 +108,18 @@ class JodelAccount:
                urlparse(url).path,
                self.access_token if self.access_token else "%"]
         if 'v2/users' not in url:
-            req.append('{0:.4f};{1:.4f}'.format(self.lat,self.lng))
+            req.append('{0:.4f};{1:.4f}'.format(self.lat, self.lng))
         req.append(timestamp),
         req.append("%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items()))),
         req.append(json.dumps(payload) if payload else '{}')
 
-        if self.is_legacy:
-            secret, version = self.secret_legacy, self.version_legacy
-        else:
-            secret, version = self.secret, self.version
+        secret, version = self.secret, self.version
 
-        #hmac_input = "%".join(req)
-        #print('HMAC Input: {}', hmac_input.encode("utf-8"))
-        #print('HMAC Secret: {}', secret)
+        # hmac_input = "%".join(req)
+        # print('HMAC Input: {}', hmac_input.encode("utf-8"))
+        # print('HMAC Secret: {}', secret)
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        #print('HMAC Signature: {}'.format(signature))
+        # print('HMAC Signature: {}'.format(signature))
         headers['X-Client-Type'] = 'android_{}'.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp

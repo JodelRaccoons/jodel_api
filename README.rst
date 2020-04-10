@@ -1,12 +1,51 @@
 THIS IS JUST A FORK OF THE OFFICIAL PROJECT 
-========
+=========
 
-- Some minor changes to make it work again (as of 5.40.0)
-- Updated HMAC-Key  
+- Some minor changes to make it work again (as of 5.77.0)
+- Updated HMAC-Key to 5.77.0
 - Partially fixed the gcmhack
 - Fixed the sign up and upvote requests (others are untested)
 - THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
-  
+
+Test result:
+.. code::
+    platform win32 -- Python 3.7.4, pytest-5.4.1, py-1.8.1, pluggy-0.13.1 -- C:\Users\Admin\AppData\Local\Programs\Python\Python37-32\python.exe
+    cachedir: .pytest_cache
+    rootdir: C:\Users\Admin\PycharmProjects\jodel_api, inifile: setup.cfg
+    plugins: flaky-3.6.1
+    collected 30 items
+
+    test/test_jodel_api.py::TestUnverifiedAccount::test_reinitalize PASSED                                                                                                                                      [  3%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_refresh_access_token PASSED                                                                                                                             [  6%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_set_location PASSED                                                                                                                                     [ 10%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_read_posts_recent PASSED                                                                                                                                [ 13%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_get_my_posts PASSED                                                                                                                                     [ 16%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_popular_after FAILED                                                                                                                                    [ 20%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_channel_after FAILED                                                                                                                                    [ 23%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_get_posts_channel FAILED                                                                                                                                [ 26%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_get_pictures PASSED                                                                                                                                     [ 30%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_get_channels PASSED                                                                                                                                     [ 33%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_set_get_config PASSED                                                                                                                                   [ 36%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_notifications PASSED                                                                                                                                    [ 40%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_post_details PASSED                                                                                                                                     [ 43%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_post_details_v3 PASSED                                                                                                                                  [ 46%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_share_url PASSED                                                                                                                                        [ 50%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_pin PASSED                                                                                                                                              [ 53%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_switch_notifications PASSED                                                                                                                             [ 56%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_verify PASSED                                                                                                                                           [ 60%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_vote PASSED                                                                                                                                             [ 63%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_post_reply PASSED                                                                                                                                       [ 66%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_post_channel_img PASSED                                                                                                                                 [ 70%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_bad_gateway_retry PASSED                                                                                                                                [ 73%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_bad_gateway_no_retry PASSED                                                                                                                             [ 76%]
+    test/test_jodel_api.py::TestUnverifiedAccount::test_follow_channel PASSED                                                                                                                                   [ 80%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_legacy SKIPPED                                                                                                                                      [ 83%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_my_pin_after SKIPPED                                                                                                                                [ 86%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_my_voted_after SKIPPED                                                                                                                              [ 90%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_notifications_read SKIPPED                                                                                                                          [ 93%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_post_message SKIPPED                                                                                                                                [ 96%]
+    test/test_jodel_api.py::TestLegacyVerifiedAccount::test_vote SKIPPED                                                                                                                                        [100%]
+
 Below is the original readme  
   
 Jodel API
