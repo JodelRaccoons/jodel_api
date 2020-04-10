@@ -8,7 +8,7 @@ THIS IS JUST A FORK OF THE OFFICIAL PROJECT
 - THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
 
 Test result:
-.. code::
+
     platform win32 -- Python 3.7.4, pytest-5.4.1, py-1.8.1, pluggy-0.13.1 -- C:\Users\Admin\AppData\Local\Programs\Python\Python37-32\python.exe
     cachedir: .pytest_cache
     rootdir: C:\Users\Admin\PycharmProjects\jodel_api, inifile: setup.cfg
