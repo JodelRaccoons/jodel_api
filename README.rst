@@ -8,9 +8,11 @@ THIS IS JUST A FORK OF THE OFFICIAL PROJECT
 - THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
 
 Install with:
-```
-pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
-```
+
+.. code::
+
+    pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
+
 
 Below is the original readme  
   
