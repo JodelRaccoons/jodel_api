@@ -1,8 +1,8 @@
 THIS IS JUST A FORK OF THE OFFICIAL PROJECT 
 =========
 
-- Some minor changes to make it work again (as of 5.77.0)
-- Updated HMAC-Key to 5.77.0
+- Some minor changes to make it work again (as of 5.104.1)
+- Updated HMAC-Key to 5.104.1
 - Partially fixed the gcmhack
 - Fixed the sign up and upvote requests (others are untested)
 - THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
