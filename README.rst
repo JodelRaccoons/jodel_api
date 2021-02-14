@@ -1,8 +1,8 @@
-THIS IS JUST A FORK OF THE OFFICIAL PROJECT 
+THIS IS JUST A FORK OF THE `(UN)OFFICIAL JODEL_API PROJECT <https://github.com/nborrmann/jodel_api>`_
 =========
 
-- Some minor changes to make it work again (as of 5.104.1)
-- Updated HMAC-Key to 5.104.1
+- Some minor changes to make it work again (as of 5.112.1)
+- Updated HMAC-Key to 5.112.1
 - Partially fixed the gcmhack
 - Fixed the sign up and upvote requests (others are untested)
 - THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
