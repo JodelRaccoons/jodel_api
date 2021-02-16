@@ -93,7 +93,7 @@ class JodelAccount:
                 break
 
         try:
-            resp_text = resp.json(encoding="utf-8")
+            resp_text = resp.json()
         except:
             resp_text = resp.text
 
@@ -245,11 +245,15 @@ class JodelAccount:
             "page": page,
             "lat": lat,
             "home": home,
-            "lng": lng
+            "lng": lng,
+            "limit": limit,
         }
 
         if timeRange:
             params["timeRange"] = timeRange
+
+        if channel:
+            params["channel"] = channel
 
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
