@@ -26,8 +26,8 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'LGxrRUBWxgsqQTLFLvcWXLTyxAXcLomxPRqFcgAW'.encode('ascii')
-    version = '5.112.1'
+    secret = 'FnYhnesPwWEdapLYEMdeAagSlzDiQLySyIeBjWTv'.encode('ascii')
+    version = '7.0.0'
 
     access_token = None
     device_uid = None
@@ -38,6 +38,7 @@ class JodelAccount:
                  is_legacy=True, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
 
+        self.secret = _secret
         self.version = _version
 
         self.is_legacy = is_legacy
