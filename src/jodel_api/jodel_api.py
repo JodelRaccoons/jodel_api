@@ -256,6 +256,9 @@ class JodelAccount:
         if channel:
             params["channel"] = channel
 
+        if hashtag:
+            params["hashtag"] = hashtag
+            
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
 
