@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import (absolute_import, print_function, unicode_literals)
+
 from builtins import input
+
 from future.standard_library import install_aliases
 
 install_aliases()
@@ -16,7 +18,6 @@ import requests
 from urllib.parse import urlparse
 from jodel_api import gcmhack
 import time
-import collections
 
 s = requests.Session()
 
@@ -25,21 +26,24 @@ class JodelAccount:
     post_colors = ['9EC41C', 'FF9908', 'DD5F5F', '8ABDB0', '06A3CB', 'FFBA00']
 
     api_url = "https://api.go-tellm.com/api{}"
-    client_id = '81e8a76e-1e02-4d17-9ba0-8a7020261b26'
-    secret = 'FnYhnesPwWEdapLYEMdeAagSlzDiQLySyIeBjWTv'.encode('ascii')
-    version = '7.0.0'
+    client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
+    secret = 'ITphnJSfuGskaTENCxRIPbiiaMScFRhycyZvFNaT'.encode('ascii')
+    version = '7.26'
 
     access_token = None
     device_uid = None
 
-    def __init__(self, lat, lng, city, pushtoken=None, _secret=secret, _version=version, country=None, name=None,
+    debug = False
+
+    def __init__(self, lat, lng, city, _secret=secret, _version=version, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
-                 is_legacy=True, **kwargs):
-        self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
+                 is_legacy=True, _debug=False, **kwargs):
+        self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
 
-        self.secret = _secret
         self.version = _version
+
+        self.debug = _debug
 
         self.is_legacy = is_legacy
         if device_uid:
@@ -56,13 +60,13 @@ class JodelAccount:
                     raise Exception("Error updating location: " + str(r))
 
         else:
-            r = self.refresh_all_tokens(pushtoken, **kwargs)
-            if r[0] != 200:
-                raise Exception("Error creating new account: " + str(r))
+            status, response = self.refresh_all_tokens(**kwargs)
+            if status != 200:
+                raise Exception("Error creating new account: " + str(response))
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'Jodel/{} Dalvik/2.1.0 (Linux; U; Android 8.0.0; )'.format(self.version)}
+        headers = {'User-Agent': 'Jodel/ (iPhone; iOS 12.5.2; Scale/2.00)'.format(self.version)}
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
         if 'v2/users' not in endpoint:
@@ -79,23 +83,30 @@ class JodelAccount:
             self._sign_request(method, url, headers, params, payload)
             headers['Content-Type'] = 'application/json; charset=UTF-8'
             headers['Accept-Encoding'] = 'gzip, deflate'
-            # print('Requesting {}'.format(url, payload))
-            # print('     Endpoint: {}'.format(endpoint))
-            # print('     Payload: {}'.format(payload))
-            # print('     Method: {}'.format(method))
-            # print('     Headers: {}'.format(headers))
-            # print('     Parameters: {}'.format(params))
-            burp = {'http': '127.0.0.1:8080',
-                    'https': '127.0.0.1:8080'}
+            if self.debug:
+                print('Requesting {}'.format(url, payload))
+                print('     Endpoint: {}'.format(endpoint))
+                print('     Payload: {}'.format(payload))
+                print('     Method: {}'.format(method))
+                print('     Headers: {}'.format(headers))
+                print('     Parameters: {}'.format(params))
+            burp = {'http': 'http://127.0.0.1:4444',
+                    'https': 'http://127.0.0.1:4444'}
             resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
-                             # proxies= burp, verify=False,
+                             #proxies=burp,
+                             #verify=False,
                              **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
         try:
             resp_text = resp.json()
+            if self.debug:
+                print('Response: ' + resp_text)
+                pass
         except:
+            if self.debug:
+                print('Response: ' + resp.text)
             resp_text = resp.text
 
         return resp.status_code, resp_text
@@ -116,18 +127,14 @@ class JodelAccount:
 
         secret, version = self.secret, self.version
 
-        # hmac_input = "%".join(req)
-        # print('HMAC Input: {}', hmac_input.encode("utf-8"))
-        # print('HMAC Secret: {}', secret)
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        # print('HMAC Signature: {}'.format(signature))
-        headers['X-Client-Type'] = 'android_{}'.format(version)
+        headers['X-Client-Type'] = 'ios_{}'.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
 
     @staticmethod
-    def _get_location_dict(lat, lng, city, country=None, name=None):
+    def _get_location_dict(lat, lng, city, country=None):
         return {"country": country if country else "DE",
                 "city": city,
                 "loc_coordinates": {"lat": lat, "lng": lng},
@@ -138,9 +145,7 @@ class JodelAccount:
                 'refresh_token': self.refresh_token, 'device_uid': self.device_uid, 'access_token': self.access_token,
                 'is_legacy': self.is_legacy}
 
-    def refresh_all_tokens(self, pushToken, **kwargs):
-        if pushToken is None:
-            pushToken = 'Lulululululu'
+    def refresh_all_tokens(self, **kwargs):
         """ Creates a new account with random ID if self.device_uid is not set. Otherwise renews all tokens of the
         account with ID = self.device_uid. """
         if not self.device_uid:
@@ -149,41 +154,34 @@ class JodelAccount:
             self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
 
         payload = {"location": self.location_dict,
-                   "iid": pushToken,
-                   "client_id": self.client_id,
-                   "registration_data": {
-                       "channel": "",
-                       "referrer_id": "",
-                       "campaign": "",
-                       "feature": "",
-                       "provider": "branch.io",
-                       "referrer_branch_id": ""
-                   },
                    "device_uid": self.device_uid,
-                   "language": "de-DE"}
+                   "language": "de-DE",
+                   "client_id": self.client_id}
 
         print('Creating account with data {}'.format(payload))
 
-        resp = self._send_request("POST", "/v2/users/", payload=payload, **kwargs)
-        if resp[0] == 200:
-            self.access_token = resp[1]['access_token']
-            self.expiration_date = resp[1]['expiration_date']
-            self.refresh_token = resp[1]['refresh_token']
-            self.distinct_id = resp[1]['distinct_id']
+        status_code, response = self._send_request("POST", "/v2/users", payload=payload, **kwargs)
+        if self.debug:
+            print('Refresh all tokens response: ', response)
+        if status_code == 200:
+            self.access_token = response['access_token']
+            self.expiration_date = response['expiration_date']
+            self.refresh_token = response['refresh_token']
+            self.distinct_id = response['distinct_id']
         else:
-            raise Exception(resp)
-        return resp
+            raise Exception(response)
+        return status_code, response
 
     def refresh_access_token(self, **kwargs):
         payload = {"client_id": self.client_id,
                    "distinct_id": self.distinct_id,
                    "refresh_token": self.refresh_token}
 
-        resp = self._send_request("POST", "/v2/users/refreshToken", payload=payload, **kwargs)
-        if resp[0] == 200:
-            self.access_token = resp[1]['access_token']
-            self.expiration_date = resp[1]['expiration_date']
-        return resp
+        status_code, response = self._send_request("POST", "/v2/users/refreshToken", payload=payload, **kwargs)
+        if status_code == 200:
+            self.access_token = response['access_token']
+            self.expiration_date = response['expiration_date']
+        return status_code, response
 
     def send_push_token(self, push_token, **kwargs):
         payload = {"client_id": self.client_id, "push_token": push_token}
@@ -228,8 +226,8 @@ class JodelAccount:
     # ################# #
 
     def _get_posts(self, post_types="", skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None,
-                   pictures=False, lat=None, lng=None, timeRange=None,
-                   distance='dynamic', feed_token=None, page=0, home=False, skipHometown=False, **kwargs):
+                   pictures=False, lat=None, lng=None, time_range=None,
+                   distance='dynamic', feed_token=None, page=0, home=False, skip_hometown=False, **kwargs):
 
         category = "mine" if mine else "hashtag" if hashtag else "channel" if channel else "location"
 
@@ -240,46 +238,32 @@ class JodelAccount:
         params = {
             "channels": True,
             "after": after,
-            "skipHometown": skipHometown,
+            "skipHometown": skip_hometown,
             "distance": distance,
             "feed_token": feed_token,
             "page": page,
             "lat": lat,
             "home": home,
-            "lng": lng,
+            "hashtag": hashtag,
+            "channel": channel,
+            "skip": skip,
             "limit": limit,
+            "lng": lng
         }
 
-        if timeRange:
-            params["timeRange"] = timeRange
+        if time_range:
+            params["timeRange"] = time_range
 
-        if channel:
-            params["channel"] = channel
-
-        if hashtag:
-            params["hashtag"] = hashtag
-            
         url = "/{api_version}/{pictures_posts}/{category}/{post_types}".format(**url_params)
         return self._send_request("GET", url, params=params, **kwargs)
 
     def get_posts_recent(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('', skip, limit, after, mine, hashtag, channel, **kwargs)
 
-    '''channels = true &
-    after = 5
-    cd99400613db6001cba9861 &
-    skipHometown = false &
-    distance = dynamic &
-    feed_token = &
-    page = 0 &
-    lat = 49.88315200805664 &
-    home = false &
-    lng = 8.669074058532715'''
-
-    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, timeRange=None,
+    def get_posts_popular(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, time_range=None,
                           lat=None, lng=None, **kwargs):
         return self._get_posts('popular', skip=skip, limit=limit, after=after, mine=mine, hashtag=hashtag,
-                               channel=channel, timeRange=timeRange, lat=lat, lng=lng, **kwargs)
+                               channel=channel, time_range=time_range, lat=lat, lng=lng, **kwargs)
 
     def get_posts_discussed(self, skip=0, limit=60, after=None, mine=False, hashtag=None, channel=None, **kwargs):
         return self._get_posts('discussed', skip, limit, after, mine, hashtag, channel, **kwargs)
@@ -415,7 +399,7 @@ class JodelAccount:
     # ############ #
 
     def set_location(self, lat, lng, city, country=None, name=None, **kwargs):
-        self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country, name)
+        self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
         return self._send_request("PUT", "/v2/users/location", payload={"location": self.location_dict}, **kwargs)
 
     def set_user_profile(self, user_type=None, gender=None, age=None, **kwargs):
