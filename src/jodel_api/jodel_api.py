@@ -287,9 +287,8 @@ class JodelAccount:
         return self._get_posts('votes', skip, limit, after, True, **kwargs)
 
     def post_search(self, message, skip=0, limit=60, **kwargs):
-        params = {"skip": skip, "limit": limit}
-        payload = {"message": message}
-        return self._send_request("POST", "/v3/posts/search", params=params, payload=payload, **kwargs)
+        params = {"message": message, "skip": skip, "limit": limit }
+        return self._send_request("GET", "/v3/posts/textSearch?", params=params, **kwargs)
 
     # ################### #
     # SINGLE POST METHODS #
