@@ -130,7 +130,7 @@ class JodelAccount:
         secret, version = self.secret, self.version
 
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Client-Type'] = 'iOS_{}'.format(version)
+        headers['X-Client-Type'] = 'ios_{}'.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
