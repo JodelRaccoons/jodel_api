@@ -27,8 +27,8 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
-    secret = 'MmEwqakKAAOGuwoDARUkMvPJfVFUmLdbTWVBHnZS'.encode('ascii')
-    version = '7.28.1'
+    secret = 'rYKfoeKQOwMHtBNTrCgvXEvgJBdwAHeZJFVqsBYh'.encode('ascii')
+    version = '7.35'
 
     access_token = None
     device_uid = None
@@ -128,7 +128,7 @@ class JodelAccount:
         secret, version = self.secret, self.version
 
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Client-Type'] = 'android_{}'.format(version)
+        headers['X-Client-Type'] = 'ios_{}'.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
