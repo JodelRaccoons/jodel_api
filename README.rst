@@ -163,7 +163,8 @@ respective responses):
     >>> j.get_my_pinned_posts(skip=0, limit=60, after=None)
     >>> j.get_my_replied_posts(skip=0, limit=60, after=None)
     >>> j.get_my_voted_posts(skip=0, limit=60, after=None)
-    >>> j.post_search(message, skip=0, limit=60)    
+    >>> j.post_search(message, skip=0, limit=60)
+    >>> j.channel_search(channel)
 
     # API methods for interacting with single posts:
     >>> j.create_post(message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel="")
@@ -180,6 +181,7 @@ respective responses):
     >>> j.enable_notifications(post_id)
     >>> j.disable_notifications(post_id)
     >>> j.delete_post(post_id) # Only works on your own posts ಠ_ಠ
+    >>> j.mute_user(post_id) # Only works if your the OJ
 
     # API methods for interacting with sticky posts:
     >>> j.upvote_sticky_post(post_id)
