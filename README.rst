@@ -180,7 +180,7 @@ respective responses):
     >>> j.enable_notifications(post_id)
     >>> j.disable_notifications(post_id)
     >>> j.delete_post(post_id) # Only works on your own posts ಠ_ಠ
-    >>> j.mute_user(post_id) # Only works on your own posts ಠ_ಠ
+    >>> j.mute_user(post_id) # Only works if your the OJ
 
     # API methods for interacting with sticky posts:
     >>> j.upvote_sticky_post(post_id)

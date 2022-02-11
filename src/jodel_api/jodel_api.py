@@ -289,6 +289,10 @@ class JodelAccount:
     def post_search(self, message, skip=0, limit=60, **kwargs):
         params = {"message": message, "skip": skip, "limit": limit }
         return self._send_request("GET", "/v3/posts/textSearch?", params=params, **kwargs)
+    
+    def channel_search(self, channel, **kwargs):
+        params = {"channel": channel}
+        return self._send_request("GET", "/v3/channels/search?", params=params, **kwargs)
 
     # ################### #
     # SINGLE POST METHODS #
