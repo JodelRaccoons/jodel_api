@@ -346,6 +346,10 @@ class JodelAccount:
     def delete_post(self, post_id, **kwargs):
         return self._send_request("DELETE", "/v2/posts/{}".format(post_id), **kwargs)
 
+    def mute_user(self, post_id, **kwargs):
+        return self._send_request('PUT', 'v3,posts/{}/mute'. format(post_id), **kwargs)
+
+
     # ################### #
     # STICKY POST METHODS #
     # ################### #
