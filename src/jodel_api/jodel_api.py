@@ -27,8 +27,8 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
-    secret = 'rYKfoeKQOwMHtBNTrCgvXEvgJBdwAHeZJFVqsBYh'.encode('ascii')
-    version = '7.35'
+    secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
+    version = '7.51'
 
     access_token = None
     device_uid = None
@@ -90,12 +90,7 @@ class JodelAccount:
                 print('     Method: {}'.format(method))
                 print('     Headers: {}'.format(headers))
                 print('     Parameters: {}'.format(params))
-            burp = {'http': 'http://127.0.0.1:4444',
-                    'https': 'http://127.0.0.1:4444'}
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
-                             #proxies=burp,
-                             #verify=False,
-                             **kwargs)
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,**kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
