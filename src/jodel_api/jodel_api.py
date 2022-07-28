@@ -37,7 +37,7 @@ class JodelAccount:
 
     debug = False
 
-    def __init__(self, lat, lng, city, _secret=secret, _version=version, country=None, name=None,
+    def __init__(self, lat, lng, city, _secret=secret, _version=version, _client_id=None, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, _debug=False, email_fetch=None, email_address=None, _client_type=None, **kwargs):
@@ -45,6 +45,9 @@ class JodelAccount:
 
         self.email_address = email_address
         self.email_fetch = email_fetch
+
+        if _client_id:
+            self.client_id = _client_id
 
         if _client_type:
             self.client_type = _client_type
@@ -402,7 +405,7 @@ class AndroidJodelAccount(JodelAccount):
         secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
         version = '8.0.1'
         client_type = 'android_{}'
-        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, **kwargs)
+        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, _client_id='81e8a76e-1e02-4d17-9ba0-8a7020261b26', **kwargs)
 
     def refresh_all_tokens(self, **kwargs):
         """
