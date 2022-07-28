@@ -41,8 +41,11 @@ class JodelAccount:
     def __init__(self, lat, lng, city, _secret=secret, _version=version, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
-                 is_legacy=True, _debug=False, **kwargs):
+                 is_legacy=True, _debug=False, email_fetch=None, email_address=None, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
+
+        self.email_address = email_address
+        self.email_fetch = email_fetch
 
         self.version = _version
 
@@ -93,7 +96,7 @@ class JodelAccount:
                 print('     Method: {}'.format(method))
                 print('     Headers: {}'.format(headers))
                 print('     Parameters: {}'.format(params))
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,**kwargs)
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
@@ -146,7 +149,15 @@ class JodelAccount:
     def refresh_all_tokens(self, **kwargs):
         """ Creates a new account with random ID if self.device_uid is not set. Otherwise renews all tokens of the
         account with ID = self.device_uid. """
-        auth = MailAuth()
+        if not self.email_address:
+            self.email_address = input("No email address is given, please enter it manually:")
+        if not self.email_fetch:
+            print("No email fetch handler registered, using manual mode")
+
+            def email_fetch(email):
+                return input("Please enter the link found in the email:")
+            self.email_fetch = email_fetch
+        auth = MailAuth(self.email_address, self.email_fetch)
         firebase_token = auth.generate_firebase_token()
 
         if not self.device_uid:

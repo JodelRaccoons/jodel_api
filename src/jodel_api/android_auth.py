@@ -1,11 +1,7 @@
-import random
 import re
-import string
-import time
 from typing import Union
 
 import requests
-import bs4
 
 
 class MailAuth:
@@ -18,30 +14,23 @@ class MailAuth:
         "X-Client-Version": "Android/Fallback/X21000001/FirebaseCore-Android",
     }
 
+    def __init__(self, mail_address, fetch_mail):
+        self.mail_address = mail_address
+        self.fetch_mail = fetch_mail
+
     def generate_firebase_token(self):
-        email = f"{''.join(random.choices(string.ascii_lowercase + string.digits, k=16))}@eyepaste.com"
-        self._requestLogin(email)
+        self._request_login(self.mail_address)
+        print(f"Requested email verification for {self.mail_address}")
 
-        print(f"Requested email verification for {email}")
+        oob_token = re.findall(r'oobCode%3D(\S*)%26continueUrl', self.fetch_mail(self.mail_address))[0]
+        print(f"Obtained oob token {oob_token} for email {self.mail_address}")
 
-        oobToken = None
-        while not oobToken:
-            response = bs4.BeautifulSoup(requests.get(f"https://www.eyepaste.com/inbox/{email}").text.replace("\r", "").replace("\n", "").replace("=", ""), features="html.parser").get_text()
-            oobCodes = re.findall('oobCode%3D(\S*)%26continueUrl', response)
-            if len(oobCodes) > 0:
-                oobToken = oobCodes[0]
-            else:
-                time.sleep(1)
-
-        print(f"Obtained oob token {oobToken} for email {email}")
-
-        firebase_token = self._redeem_oob(oobToken, email)
-
-        fresh_token = self._refreshTokens(firebase_token['refreshToken'])
+        firebase_token = self._redeem_oob(oob_token, self.mail_address)
+        fresh_token = self._refresh_tokens(firebase_token['refreshToken'])
 
         return fresh_token['access_token']
 
-    def _requestLogin(self, email: str) -> Union[bool, str]:
+    def _request_login(self, email: str) -> Union[bool, str]:
         url = f"{self.baseURL}/identitytoolkit/v3/relyingparty/getOobConfirmationCode"
 
         payload = {
@@ -60,17 +49,7 @@ class MailAuth:
             return True
         return f"{response.status_code} | Failed to create account | {response.text}"
 
-    def _extract_oob(self, link: str) -> Union[bool, str]:
-        try:
-            url = requests.utils.unquote(link)
-            start = 'oobCode='
-            end = '&continueUrl'
-            return (url[url.find(start) + len(start):url.rfind(end)])
-        except:
-            return False
-
     def _redeem_oob(self, oobCode: str, email: str) -> Union[str, dict]:
-
         url = f"{self.baseURL}/identitytoolkit/v3/relyingparty/emailLinkSignin"
 
         payload = {
@@ -79,18 +58,18 @@ class MailAuth:
         }
 
         response = requests.post(url, json=payload, headers=self.headers, params=self.querystring)
-        responseJsoned = response.json()
+        response_jsoned = response.json()
 
-        if response.status_code == 200 and responseJsoned['kind'] == 'identitytoolkit#EmailLinkSigninResponse':
+        if response.status_code == 200 and response_jsoned['kind'] == 'identitytoolkit#EmailLinkSigninResponse':
             return {
-                'idToken': responseJsoned['idToken'],
-                'refreshToken': responseJsoned['refreshToken'],
-                'expiresIn': responseJsoned['expiresIn'],
-                'localId': responseJsoned['localId'],
+                'idToken': response_jsoned['idToken'],
+                'refreshToken': response_jsoned['refreshToken'],
+                'expiresIn': response_jsoned['expiresIn'],
+                'localId': response_jsoned['localId'],
             }
         return f"{response.status_code} | Failed to redeem Oob | {response.text}"
 
-    def _refreshTokens(self, refreshToken: str) -> Union[str, dict]:
+    def _refresh_tokens(self, refreshToken: str) -> Union[str, dict]:
         url = "https://securetoken.googleapis.com/v1/token"
 
         payload = {
@@ -99,18 +78,14 @@ class MailAuth:
         }
 
         response = requests.post(url, json=payload, headers=self.headers, params=self.querystring)
-        responseJsoned = response.json()
+        response_jsoned = response.json()
 
         if response.status_code == 200:
             return {
-                'access_token': responseJsoned['access_token'],
-                'expires_in': responseJsoned['expires_in'],
-                'refresh_token': responseJsoned['refresh_token'],
-                'user_id': responseJsoned['user_id'],
-                'project_id': responseJsoned['project_id']
+                'access_token': response_jsoned['access_token'],
+                'expires_in': response_jsoned['expires_in'],
+                'refresh_token': response_jsoned['refresh_token'],
+                'user_id': response_jsoned['user_id'],
+                'project_id': response_jsoned['project_id']
             }
         return f"{response.status_code} | Failed to refresh tokens | {response.text}"
-
-
-if __name__ == '__main__':
-    MailAuth().generate_firebase_token()

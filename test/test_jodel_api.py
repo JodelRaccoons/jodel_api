@@ -184,13 +184,10 @@ class TestUnverifiedAccount:
         assert r[1]["notifications_enabled"] == False
 
     @flaky(max_runs=3, rerun_filter=delay_rerun)
-    def test_verify(self):
-        r = self.j.verify()
-        assert r[0] == 200
-
+    def test_blocked(self):
         r = self.j.get_user_config()
         assert r[0] == 200
-        assert r[1]['verified'] == True
+        assert r[1].get('user_blocked') == False
 
     def test_vote(self):
         assert self.j.upvote(self.pid)[0] == 200
@@ -202,7 +199,7 @@ class TestUnverifiedAccount:
         r = self.j.create_post(msg, ancestor=self.pid1)
         print(r)
         assert r[0] == 200
-        assert "post_id" in r[1]
+        assert r[1] == {}
 
         p = self.j.get_post_details(self.pid1)
         assert p[0] == 200
