@@ -1,19 +1,57 @@
 THIS IS JUST A FORK OF THE `(UN)OFFICIAL JODEL_API PROJECT <https://github.com/nborrmann/jodel_api>`_
 =========
 
-- Some minor changes to make it work again (at least partially, as of 7.28.1)
-- Updated HMAC-Key to 7.28.1
-- Partially fixed the gcmhack
-- Fixed the sign up and upvote requests (others are untested)
-- THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
-- Switchted to iOS based account registration, seems to be way more reliable
-- Verifying the account is still done using GCM tokens, seems to make no difference for the server
+- Updated HMAC-Key to 8.0.1 (Android) / 7.51 (iOS)
+- Removed GCM verification
+- Added authentication for iOS and Android
+    - iOS authentication is done using the corresponding HMAC key
+    - Android authentication is based on the email verification
+- BOTH ACCOUNT TYPES DO ONLY ALLOW READABLE ACCESS
+    - Users are usually instantly blocked upon registering
+    - Not much can be done about this except improving the mimicking of a legitimate Android user
 
 Install with:
 
 .. code::
 
     pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
+
+
+This api, as follows uses the iOS account registration as less information is required:
+
+.. code::
+
+    lat, lng, city = 48.834875, 2.344962, "Paris"
+    j = jodel_api.JodelAccount(lat=lat, lng=lng, city=city)
+
+Nevertheless, individual platform accounts can be registered.
+For example registration using the iOS mechanism would look as follows:
+
+.. code::
+
+    Python 3.9.7 (tags/v3.9.7:1016ef3, Aug 30 2021, 20:19:38) [MSC v.1929 64 bit (AMD64)] on win32
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import jodel_api
+    >>> lat, lng, city = 48.834875, 2.344962, "Paris"
+    >>> j = jodel_api.iOSJodelAccount(lat=lat, lng=lng, city=city)
+    Creating new account.
+    Creating account with data {'location': {'country': 'DE', 'city': 'Paris', 'loc_coordinates': {'lat': 48.834875, 'lng': 2.344962}, 'loc_accuracy': 15.457}, 'device_uid': 'XXX', 'language': 'de-DE', 'client_id': 'XXX'}
+
+and the Android equivalent would look like the following:
+
+.. code::
+
+    Python 3.9.7 (tags/v3.9.7:1016ef3, Aug 30 2021, 20:19:38) [MSC v.1929 64 bit (AMD64)] on win32
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import jodel_api
+    >>> lat, lng, city = 48.834875, 2.344962, "Paris"
+    >>> j = jodel_api.AndroidJodelAccount(lat=lat, lng=lng, city=city)
+    No email address is given, please enter it manually: your@email.com
+    Requested email verification for your@email.com
+    Please enter the link found in the email: https://ae3ts.app.goo.gl/?link=https://tellm-android.firebaseapp.com/__/auth/action?apiKey%3DAIzaSyBC5AfciIsT15NSwrfhLhsLG5UtFisbeSA%26mode%3DsignIn%26oobCode%3DXXXXXXXXXXXXXXXX%26continueUrl%3Dhttps://jodel.com/app/magic-link-fallback%26lang%3Den&apn=com.tellm.android.app&amv=5.116.0
+    Obtained oob token XXXXXXXXX for email your@email.com
+    Creating new account.
+    Creating account with data {'firebase_uid': 'jtNECbcwmfPGgQVuyKVPpsW8UIE3', 'firebaseJWT': 'XXXXX', 'location': {'country': 'DE', 'city': 'Paris', 'loc_coordinates': {'lat': 48.834875, 'lng': 2.344962}, 'loc_accuracy': 15.457}, 'device_uid': 'XXX', 'language': 'de-DE', 'client_id': 'XXX'}
 
 
 Below is the original readme  
@@ -102,43 +140,7 @@ but preserves the account's data (karma, etc)):
 Account Verification
 ~~~~~~~~~~~~~~~~~~~~
 
-For some functionality like voting and posting (look out for error 478) 
-accounts need to be verified. 
-
-With Jodel version ``4.48`` captcha verification has been disabled. 
-However old accounts will continue to work with version ``4.47``. But if you
-ever use an old, verified account with version ``4.48`` it will become
-unverified. To this end, use the flag ``is_legacy=True`` in the 
-constructor when you instantiate an old account (on by default). New
-accounts must be created with ``is_legacy=False``.
-
-In ``4.48`` accounts can only be verified through Google Cloud Messaging.
-The steps are as follows:
-
-1. Create an Android Account: ``a = jodel_api.AndroidAccount()``
-2. Request a push token: ``a.get_push_token()``
-3. Send push token to Jodel Servers: ``j.send_push_token(token)``
-4. Log into GCM and read push messages (``verification_code``) from 
-   Jodel: ``verification = a.receive_verification_from_gcm()``
-5. Send the verification code to Jodel to verify the account:
-   ``a.verify_push(server_time, verification_code)``
-
-In ``jodel_api`` this is implemented as follows:
-
-.. code:: python
-   
-   a = jodel_api.AndroidAccount()
-   j.verify(a)
-
-Tip: If the call is successful, save the account credentials and reuse
-them later (if you get ``REGISTRATION_INVALID`` retry with another
-account):
-
-.. code:: python
-   
-   account_id, security_token = a.android_id, a.security_token
-   a2 = jodel_api.AndroidAccount(account_id, security_token)
-
+=== Removed due to obsolete ===
 
 API calls
 ~~~~~~~~~
@@ -167,7 +169,6 @@ respective responses):
 
     # API methods for interacting with single posts:
     >>> j.create_post(message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel="")
-    >>> j.get_post_details(post_id) # This endpoint has been deprecated. Use get_post_details_v3.
     >>> # This api endpoint implements paging and returns at most 50 replies,
     >>> # use the skip parameter to page through the thread:
     >>> j.get_post_details_v3(post_id, skip=0) 

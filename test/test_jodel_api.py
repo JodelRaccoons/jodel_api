@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import (absolute_import, print_function, unicode_literals)
-import jodel_api
-from random import uniform, choice
-import datetime
+
 import base64
-import pytest
-from string import ascii_lowercase
-from mock import MagicMock, patch
-import builtins
-import requests
+import datetime
 import os
-from flaky import flaky
 import time
+from random import uniform, choice
+from string import ascii_lowercase
+
+import pytest
+from flaky import flaky
+from mock import MagicMock, patch
+
+import jodel_api
 
 lat, lng, city = 49.021785, 12.103129, "Regensburg"
 test_channel = "WasGehtHeute?"
@@ -46,7 +47,7 @@ class TestUnverifiedAccount:
     def test_reinitalize(self):
         acc = self.j.get_account_data()
         with pytest.raises(Exception) as excinfo:
-            j2 = jodel_api.JodelAccount(lat="a", lng="b", city=13, update_location=True, **acc) 
+            j2 = jodel_api.JodelAccount(lat="a", lng="b", city=13, update_location=True, **acc)
 
         assert "Error updating location" in str(excinfo.value)
 
@@ -126,10 +127,10 @@ class TestUnverifiedAccount:
 
     def test_get_channels(self):
         r = self.j.get_recommended_channels()
-        assert "local" in r[1]
+        assert 'local' in r[1]
         assert r[0] == 200
 
-        channel = r[1]["local"][0]["channel"]
+        channel = r[1]["default"][0]["channel"]
         assert self.j.get_channel_meta(channel)[0] == 200
 
     def test_set_get_config(self):
@@ -199,14 +200,15 @@ class TestUnverifiedAccount:
         r = self.j.create_post(msg, ancestor=self.pid1)
         print(r)
         assert r[0] == 200
-        assert r[1] == {}
+        assert "post_id" in r[1]
 
         p = self.j.get_post_details(self.pid1)
         assert p[0] == 200
-        assert "children" in p[1]
-        print([post["post_id"] for post in p[1]["children"]])
-        assert r[1]["post_id"] in [post["post_id"] for post in p[1]["children"]]
-        my_post = next(post for post in p[1]["children"] if post["post_id"] == r[1]["post_id"])
+        assert "replies" in p[1]
+        print([post["post_id"] for post in p[1]["replies"]])
+        # will fail if account is blocked
+        assert r[1]["post_id"] in [post["post_id"] for post in p[1]["replies"]]
+        my_post = next(post for post in p[1]["replies"] if post["post_id"] == r[1]["post_id"])
         assert my_post["message"] == msg
 
         assert self.j.delete_post(r[1]["post_id"])[0] == 204

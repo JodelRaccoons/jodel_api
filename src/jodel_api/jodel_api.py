@@ -18,8 +18,6 @@ import json
 import random
 import requests
 from urllib.parse import urlparse
-from jodel_api import gcmhack
-import time
 
 s = requests.Session()
 
@@ -27,11 +25,12 @@ s = requests.Session()
 class JodelAccount:
     post_colors = ['9EC41C', 'FF9908', 'DD5F5F', '8ABDB0', '06A3CB', 'FFBA00']
 
-    api_url = "https://api.go-tellm.com/api{}"
+    api_url = "https://api.jodelapis.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
     firebase_uid = 'jtNECbcwmfPGgQVuyKVPpsW8UIE3'
-    secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
-    version = '8.0.1'
+    secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
+    version = '7.51'
+    client_type = 'ios_{}'
 
     access_token = None
     device_uid = None
@@ -41,11 +40,14 @@ class JodelAccount:
     def __init__(self, lat, lng, city, _secret=secret, _version=version, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
-                 is_legacy=True, _debug=False, email_fetch=None, email_address=None, **kwargs):
+                 is_legacy=True, _debug=False, email_fetch=None, email_address=None, _client_type=None, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
 
         self.email_address = email_address
         self.email_fetch = email_fetch
+
+        if _client_type:
+            self.client_type = _client_type
 
         self.version = _version
 
@@ -129,7 +131,7 @@ class JodelAccount:
         secret, version = self.secret, self.version
 
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Client-Type'] = 'android_{}'.format(version)
+        headers['X-Client-Type'] = self.client_type.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
@@ -149,25 +151,12 @@ class JodelAccount:
     def refresh_all_tokens(self, **kwargs):
         """ Creates a new account with random ID if self.device_uid is not set. Otherwise renews all tokens of the
         account with ID = self.device_uid. """
-        if not self.email_address:
-            self.email_address = input("No email address is given, please enter it manually:")
-        if not self.email_fetch:
-            print("No email fetch handler registered, using manual mode")
-
-            def email_fetch(email):
-                return input("Please enter the link found in the email:")
-            self.email_fetch = email_fetch
-        auth = MailAuth(self.email_address, self.email_fetch)
-        firebase_token = auth.generate_firebase_token()
-
         if not self.device_uid:
             print("Creating new account.")
             self.is_legacy = False
             self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
 
-        payload = {"firebase_uid": self.firebase_uid,
-                   "firebaseJWT": firebase_token,
-                   "location": self.location_dict,
+        payload = {"location": self.location_dict,
                    "device_uid": self.device_uid,
                    "language": "de-DE",
                    "client_id": self.client_id}
@@ -200,40 +189,6 @@ class JodelAccount:
     def send_push_token(self, push_token, **kwargs):
         payload = {"client_id": self.client_id, "push_token": push_token}
         return self._send_request("PUT", "/v2/users/pushToken", payload=payload, **kwargs)
-
-    def verify_push(self, server_time, verification_code, **kwargs):
-        payload = {"server_time": server_time, "verification_code": verification_code}
-        return self._send_request("POST", "/v3/user/verification/push", payload=payload, **kwargs)
-
-    def verify(self, android_account=None, **kwargs):
-        if not android_account:
-            android_account = gcmhack.AndroidAccount(**kwargs)
-            time.sleep(5)
-
-        token = android_account.get_push_token(**kwargs)
-
-        for i in range(3):
-            r = self.send_push_token(token, **kwargs)
-            if r[0] != 204:
-                return r
-
-            try:
-                verification = self._read_verificiation(android_account)
-
-                status, r = self.verify_push(verification['server_time'], verification['verification_code'], **kwargs)
-                if status == 200 or i == 2:
-                    return status, r
-            except gcmhack.GcmException:
-                if i == 2:
-                    raise
-
-    def _read_verificiation(self, android_account):
-        for j in range(3):
-            try:
-                return android_account.receive_verification_from_gcm()
-            except gcmhack.GcmException:
-                if j == 2:
-                    raise
 
     # ################# #
     # GET POSTS METHODS #
@@ -326,8 +281,9 @@ class JodelAccount:
 
         return self._send_request("POST", '/v3/posts/', payload=payload, **kwargs)
 
+    # endpoint in api version v2 is disabled
     def get_post_details(self, post_id, **kwargs):
-        return self._send_request("GET", '/v2/posts/{}/'.format(post_id), **kwargs)
+        return self.get_post_details_v3(post_id, **kwargs)
 
     def get_post_details_v3(self, post_id, skip=0, **kwargs):
         return self._send_request("GET", '/v3/posts/{}/details'.format(post_id),
@@ -431,6 +387,73 @@ class JodelAccount:
 
     def get_user_config(self, **kwargs):
         return self._send_request("GET", "/v3/user/config", **kwargs)
+
+
+class iOSJodelAccount(JodelAccount):
+    def __init__(self, lat, lng, city, **kwargs):
+        secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
+        version = '7.51'
+        client_type = 'ios_{}'
+        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, **kwargs)
+
+
+class AndroidJodelAccount(JodelAccount):
+    def __init__(self, lat, lng, city, **kwargs):
+        secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
+        version = '8.0.1'
+        client_type = 'android_{}'
+        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, **kwargs)
+
+    def refresh_all_tokens(self, **kwargs):
+        """
+        Mimics the Android account creation via email
+        Prompts the user for input if email_fetch and email_address are not set within the constructor
+        email_address: str -> test@mail.com
+        email_fetch: function with email_address as parameter
+            -> function should return the content of the email e.g.
+            def email_fetcher(email_address):
+                email = None
+                while not email:
+                    response = requests.get(f"https://your.email.service/{email_address}").text
+                    if "oobCode" in response:
+                        return response
+                    else:
+                        time.sleep(1)
+        """
+        if not self.email_address:
+            self.email_address = input("No email address is given, please enter it manually: ")
+        if not self.email_fetch:
+            def email_fetch(email):
+                return input("Please enter the link found in the email: ")
+            self.email_fetch = email_fetch
+        auth = MailAuth(self.email_address, self.email_fetch)
+        firebase_token = auth.generate_firebase_token()
+
+        if not self.device_uid:
+            print("Creating new account.")
+            self.is_legacy = False
+            self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
+
+        payload = {"firebase_uid": self.firebase_uid,
+                   "firebaseJWT": firebase_token,
+                   "location": self.location_dict,
+                   "device_uid": self.device_uid,
+                   "language": "de-DE",
+                   "client_id": self.client_id}
+
+        print('Creating account with data {}'.format(payload))
+
+        status_code, response = self._send_request("POST", "/v2/users", payload=payload, **kwargs)
+        if self.debug:
+            print('Refresh all tokens response: ', response)
+        if status_code == 200:
+            self.access_token = response['access_token']
+            self.expiration_date = response['expiration_date']
+            self.refresh_token = response['refresh_token']
+            self.distinct_id = response['distinct_id']
+        else:
+            raise Exception(response)
+        return status_code, response
 
 
 # helper function to mock input
