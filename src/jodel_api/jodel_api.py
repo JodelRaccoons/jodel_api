@@ -6,6 +6,8 @@ from builtins import input
 
 from future.standard_library import install_aliases
 
+from jodel_api.android_auth import MailAuth
+
 install_aliases()
 
 import base64
@@ -27,8 +29,9 @@ class JodelAccount:
 
     api_url = "https://api.go-tellm.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
-    secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
-    version = '7.51'
+    firebase_uid = 'jtNECbcwmfPGgQVuyKVPpsW8UIE3'
+    secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
+    version = '8.0.1'
 
     access_token = None
     device_uid = None
@@ -123,7 +126,7 @@ class JodelAccount:
         secret, version = self.secret, self.version
 
         signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Client-Type'] = 'ios_{}'.format(version)
+        headers['X-Client-Type'] = 'android_{}'.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
@@ -143,12 +146,17 @@ class JodelAccount:
     def refresh_all_tokens(self, **kwargs):
         """ Creates a new account with random ID if self.device_uid is not set. Otherwise renews all tokens of the
         account with ID = self.device_uid. """
+        auth = MailAuth()
+        firebase_token = auth.generate_firebase_token()
+
         if not self.device_uid:
             print("Creating new account.")
             self.is_legacy = False
             self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
 
-        payload = {"location": self.location_dict,
+        payload = {"firebase_uid": self.firebase_uid,
+                   "firebaseJWT": firebase_token,
+                   "location": self.location_dict,
                    "device_uid": self.device_uid,
                    "language": "de-DE",
                    "client_id": self.client_id}
