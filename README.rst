@@ -16,6 +16,13 @@ Install with:
     pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
 
 
+@JodelTeam 
+========
+I can most certanly understand that bots are a huge issue for you. Out intention never was to bring bots and simmilar to your platform but to just have simple programatic read only access to the API.
+
+Bot access with a controlled HMAC key would also be a very nice feature, to enable the community to build around your service and allow them to provide new features.
+If you have any concerns regarding this repository, feel free to contact me!
+
 Below is the original readme  
   
 Jodel API
