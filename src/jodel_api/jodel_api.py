@@ -37,7 +37,7 @@ class JodelAccount:
 
     debug = False
 
-    def __init__(self, lat, lng, city, _secret=secret, _version=version, _client_id=None, country=None, name=None,
+    def __init__(self, lat, lng, city, _secret=None, _version=None, _client_id=None, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
                  is_legacy=True, _debug=False, email_fetch=None, email_address=None, _client_type=None, **kwargs):
@@ -45,6 +45,12 @@ class JodelAccount:
 
         self.email_address = email_address
         self.email_fetch = email_fetch
+
+        if _secret:
+            self.secret = _secret
+
+        if _version:
+            self.version = _version
 
         if _client_id:
             self.client_id = _client_id
@@ -77,11 +83,11 @@ class JodelAccount:
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'Jodel/ (iPhone; iOS 12.5.2; Scale/2.00)'.format(self.version)}
+        headers = {'User-Agent': 'python-requests / jodel_api {} (https://github.com/JodelRaccoons/jodel_api/)'.format(self.version)}
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
         if 'v2/users' not in endpoint:
-            headers['X-Location'] = '{0:.4f};{1:.4f}'.format(self.lat, self.lng)
+            headers['X-Location'] = '{0:.6f};{1:.6f}'.format(self.lat, self.lng)
 
         if 'upvote' in endpoint and params is None:
             params = dict()
@@ -101,7 +107,14 @@ class JodelAccount:
                 print('     Method: {}'.format(method))
                 print('     Headers: {}'.format(headers))
                 print('     Parameters: {}'.format(params))
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers, **kwargs)
+            proxies = {
+                'http': 'http://127.0.0.1:8081',
+                'https': 'http://127.0.0.1:8081'
+            }
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
+                             #proxies=proxies,
+                             #verify=False,
+                             **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
@@ -113,7 +126,7 @@ class JodelAccount:
         except:
             if self.debug:
                 print('Response: ' + resp.text)
-            resp_text = resp.text
+            resp_text = json.loads(resp.text)
 
         return resp.status_code, resp_text
 
@@ -126,14 +139,15 @@ class JodelAccount:
                urlparse(url).path,
                self.access_token if self.access_token else "%"]
         if 'v2/users' not in url:
-            req.append('{0:.4f};{1:.4f}'.format(self.lat, self.lng))
+            req.append('{0:.6f};{1:.6f}'.format(self.lat, self.lng))
         req.append(timestamp),
-        req.append("%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items()))),
+        req.append("%".join(sorted("{}%{}".format(key, json.dumps(value)) for key, value in (params if params else {}).items()))),
         req.append(json.dumps(payload) if payload else '{}')
 
         secret, version = self.secret, self.version
 
-        signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
+        hmac_input = "%".join(req).encode("utf-8").strip()
+        signature = hmac.new(secret, hmac_input, sha1).hexdigest().upper()
         headers['X-Client-Type'] = self.client_type.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
@@ -266,7 +280,7 @@ class JodelAccount:
     # SINGLE POST METHODS #
     # ################### #
 
-    def create_post(self, message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel="", **kwargs):
+    def create_post(self, message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel=None, **kwargs):
         if not imgpath and not message and not b64img:
             raise ValueError("One of message or imgpath must not be null.")
 
@@ -274,7 +288,7 @@ class JodelAccount:
                    "location": self.location_dict,
                    "ancestor": ancestor,
                    "message": message,
-                   "channel": channel}
+                   "channel_id": channel if channel else '5f8ebbb3fd37e500256f7a67'}
         if imgpath:
             with open(imgpath, "rb") as f:
                 imgdata = base64.b64encode(f.read()).decode("utf-8")
