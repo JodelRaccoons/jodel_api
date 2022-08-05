@@ -6,15 +6,25 @@ THIS IS JUST A FORK OF THE `(UN)OFFICIAL JODEL_API PROJECT <https://github.com/n
 - Added authentication for iOS and Android
     - iOS authentication is done using the corresponding HMAC key
     - Android authentication is based on the email verification
-- BOTH ACCOUNT TYPES DO ONLY ALLOW READABLE ACCESS
-    - Users are usually instantly blocked upon registering
-    - Not much can be done about this except improving the mimicking of a legitimate Android user
+- Android accounts with a verified email allow writable access, iOS does not
 
-Install with:
+**PLEASE USE WRITABLE ACCESS RESPONSIBLY, THIS CODE IS NOT INTENDED FOR CREATING UPVOTE OR SPAM BOTS!**
+
+**IF WRITABLE ACCESS IS ABUSED, JODEL WILL IMPLEMENT FURTHER MEASURES WHICH BREAK THE CURRENT STATE OF THE REPO**
+
+@JodelTeam 
+========
+I can most certanly understand that bots are a huge issue for you. Out intention never was to bring bots and simmilar to your platform but to just have simple programatic read only access to the API.
+
+Bot access with a controlled HMAC key would also be a very nice feature, to enable the community to build around your service and allow them to provide new features.
+If you have any concerns regarding this repository, feel free to contact me!
+
+Installation
+========
 
 .. code::
 
-    pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
+    pip3 install git+https://github.com/JodelRaccoons/jodel_api.git@android_mail_auth#egg=jodel-api
 
 
 This api, as follows uses the iOS account registration as less information is required:
@@ -53,10 +63,8 @@ and the Android equivalent would look like the following:
     Creating new account.
     Creating account with data {'firebase_uid': 'jtNECbcwmfPGgQVuyKVPpsW8UIE3', 'firebaseJWT': 'XXXXX', 'location': {'country': 'DE', 'city': 'Paris', 'loc_coordinates': {'lat': 48.834875, 'lng': 2.344962}, 'loc_accuracy': 15.457}, 'device_uid': 'XXX', 'language': 'de-DE', 'client_id': 'XXX'}
 
-
-Below is the original readme  
-  
-Jodel API
+ 
+(original README) Jodel API
 =========
 
 |Build Status| |Coverage Status| |Health| |Python Versions| |PyPI Version| |License|
