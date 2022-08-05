@@ -89,10 +89,6 @@ class JodelAccount:
         if 'v2/users' not in endpoint:
             headers['X-Location'] = '{0:.6f};{1:.6f}'.format(self.lat, self.lng)
 
-        if 'upvote' in endpoint and params is None:
-            params = dict()
-            params['home'] = False
-
         if payload is None:
             payload = {}
 
@@ -100,6 +96,7 @@ class JodelAccount:
             self._sign_request(method, url, headers, params, payload)
             headers['Content-Type'] = 'application/json; charset=UTF-8'
             headers['Accept-Encoding'] = 'gzip, deflate'
+            headers['X-Location-Type'] = 'local'
             if self.debug:
                 print('Requesting {}'.format(url, payload))
                 print('     Endpoint: {}'.format(endpoint))
@@ -306,8 +303,9 @@ class JodelAccount:
         return self._send_request("GET", '/v3/posts/{}/details'.format(post_id),
                                   params={'details': 'true', 'reply': skip}, **kwargs)
 
-    def upvote(self, post_id, **kwargs):
-        return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), **kwargs)
+    def upvote(self, post_id, home=False, explorer=False, isRecommended=False, section='Main', sorting='newest', filter='Now', **kwargs):
+        params = {'home': home, 'explorer': explorer, 'isRecommended':isRecommended, 'section': section, 'sorting':sorting, 'filter':filter}
+        return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), params=params, **kwargs)
 
     def downvote(self, post_id, **kwargs):
         return self._send_request("PUT", '/v2/posts/{}/downvote/'.format(post_id), **kwargs)
