@@ -141,12 +141,15 @@ class JodelAccount:
         if 'v2/users' not in url:
             req.append('{0:.6f};{1:.6f}'.format(self.lat, self.lng))
         req.append(timestamp),
-        req.append("%".join(sorted("{}%{}".format(key, json.dumps(value)) for key, value in (params if params else {}).items()))),
+        req.append("%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items()))),
         req.append(json.dumps(payload) if payload else '{}')
 
         secret, version = self.secret, self.version
 
         hmac_input = "%".join(req).encode("utf-8").strip()
+        if self.debug:
+            print("HMAC Input", hmac_input)
+            print("HMAC Key", self.secret, "version", self.version)
         signature = hmac.new(secret, hmac_input, sha1).hexdigest().upper()
         headers['X-Client-Type'] = self.client_type.format(version)
         headers['X-Api-Version'] = '0.2'
@@ -304,7 +307,7 @@ class JodelAccount:
 
     def get_post_details_v3(self, post_id, skip=0, **kwargs):
         return self._send_request("GET", '/v3/posts/{}/details'.format(post_id),
-                                  params={'details': 'true', 'reply': skip}, **kwargs)
+                                  params={'details': True, 'reply': skip}, **kwargs)
 
     def upvote(self, post_id, home=False, explorer=False, isRecommended=False, section='Main', sorting='newest', filter='Now', **kwargs):
         params = {'home': home, 'explorer': explorer, 'isRecommended':isRecommended, 'section': section, 'sorting':sorting, 'filter':filter}
