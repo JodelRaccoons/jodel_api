@@ -21,6 +21,10 @@ from urllib.parse import urlparse
 
 s = requests.Session()
 
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 class JodelAccount:
     post_colors = ['9EC41C', 'FF9908', 'DD5F5F', '8ABDB0', '06A3CB', 'FFBA00']
@@ -83,7 +87,8 @@ class JodelAccount:
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'python-requests / jodel_api {} (https://github.com/JodelRaccoons/jodel_api/)'.format(self.version)}
+        headers = {'User-Agent': 'python-requests / jodel_api {} (https://github.com/JodelRaccoons/jodel_api/)'.format(
+            self.version)}
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
         if 'v2/users' not in endpoint:
@@ -276,7 +281,7 @@ class JodelAccount:
         return self._get_posts('votes', skip, limit, after, True, **kwargs)
 
     def post_search(self, message, skip=0, limit=60, **kwargs):
-        params = {"message": message, "skip": skip, "limit": limit }
+        params = {"message": message, "skip": skip, "limit": limit}
         return self._send_request("GET", "/v3/posts/textSearch?", params=params, **kwargs)
 
     # ################### #
@@ -309,8 +314,10 @@ class JodelAccount:
         return self._send_request("GET", '/v3/posts/{}/details'.format(post_id),
                                   params={'details': True, 'reply': skip}, **kwargs)
 
-    def upvote(self, post_id, home=False, explorer=False, isRecommended=False, section='Main', sorting='newest', filter='Now', **kwargs):
-        params = {'home': home, 'explorer': explorer, 'isRecommended':isRecommended, 'section': section, 'sorting':sorting, 'filter':filter}
+    def upvote(self, post_id, home=False, explorer=False, isRecommended=False, section='Main', sorting='newest',
+               filter='Now', **kwargs):
+        params = {'home': home, 'explorer': explorer, 'isRecommended': isRecommended, 'section': section,
+                  'sorting': sorting, 'filter': filter}
         return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), params=params, **kwargs)
 
     def downvote(self, post_id, **kwargs):
@@ -388,6 +395,12 @@ class JodelAccount:
     # USER METHODS #
     # ############ #
 
+    def set_user_language(self, feed_languages=None):
+        if feed_languages is None:
+            feed_languages = ["en", "ar", "de", "fi", "other"]
+        return self._send_request('PUT', '/v3/user/language',
+                                  payload={"language": "en-us", "feed_languages": feed_languages})
+
     def set_location(self, lat, lng, city, country=None, name=None, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
         return self._send_request("PUT", "/v2/users/location", payload={"location": self.location_dict}, **kwargs)
@@ -423,7 +436,8 @@ class AndroidJodelAccount(JodelAccount):
         secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
         version = '8.0.1'
         client_type = 'android_{}'
-        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, _client_id='81e8a76e-1e02-4d17-9ba0-8a7020261b26', **kwargs)
+        super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type,
+                         _client_id='81e8a76e-1e02-4d17-9ba0-8a7020261b26', **kwargs)
 
     def refresh_all_tokens(self, **kwargs):
         """
@@ -446,6 +460,7 @@ class AndroidJodelAccount(JodelAccount):
         if not self.email_fetch:
             def email_fetch(email):
                 return input("Please enter the link found in the email: ")
+
             self.email_fetch = email_fetch
         auth = MailAuth(self.email_address, self.email_fetch)
         firebase_token = auth.generate_firebase_token()
