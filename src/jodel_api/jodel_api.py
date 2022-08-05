@@ -116,10 +116,13 @@ class JodelAccount:
                 break
 
         try:
-            resp_text = resp.json()
-            if self.debug:
-                print('Response: ' + resp_text)
-                pass
+            if resp.status_code == 204:
+                return resp.status_code,
+
+            if resp.text:
+                resp_text = resp.json()
+                if self.debug:
+                    print('Response: ' + resp_text)
         except:
             if self.debug:
                 print('Response: ' + resp.text)
