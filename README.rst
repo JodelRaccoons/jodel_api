@@ -1,24 +1,25 @@
 THIS IS JUST A FORK OF THE `(UN)OFFICIAL JODEL_API PROJECT <https://github.com/nborrmann/jodel_api>`_
 =========
 
-- Some minor changes to make it work again (at least partially, as of 7.28.1)
-- Updated HMAC-Key to 7.28.1
-- Partially fixed the gcmhack
-- Fixed the sign up and upvote requests (others are untested)
-- THE FIXES WERE DONE QUICK AND DIRTY, THIS CODE COULD BREAK AT ANY TIME
-- Switchted to iOS based account registration, seems to be way more reliable
-- Verifying the account is still done using GCM tokens, seems to make no difference for the server
+- Updated HMAC-Key to 7.51 (iOS)
+- Using the iOS based authentication, accounts will be banned instantly
+- Banned accounts can only be used for read-only requests
+- Please do not abuse the code provided here for creating spam / upvote bots. If so, Jodel will harden their security further, effectively breaking the current working state of this repo.
+
+@JodelTeam 
+========
+I can most certanly understand that bots are a huge issue for you. Out intention never was to bring bots and simmilar to your platform but to just have simple programatic read only access to the API.
+
+Bot access with a controlled HMAC key would also be a very nice feature, to enable the community to build around your service and allow them to provide new features.
+If you have any concerns regarding this repository, feel free to contact me!
 
 Install with:
 
 .. code::
 
     pip3 install git+git://github.com/JodelRaccoons/jodel_api.git#egg=jodel-api
-
-
-Below is the original readme  
   
-Jodel API
+(original README) Jodel API
 =========
 
 |Build Status| |Coverage Status| |Health| |Python Versions| |PyPI Version| |License|
