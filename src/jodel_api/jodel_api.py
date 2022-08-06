@@ -297,7 +297,7 @@ class JodelAccount:
                    "location": self.location_dict,
                    "ancestor": ancestor,
                    "message": message,
-                   "channel_id": channel if channel else '5f8ebbb3fd37e500256f7a67'}
+                   "channel": channel if channel else '5f8ebbb3fd37e500256f7a67'}
         if imgpath:
             with open(imgpath, "rb") as f:
                 imgdata = base64.b64encode(f.read()).decode("utf-8")
