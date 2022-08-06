@@ -125,9 +125,15 @@ class JodelAccount:
                     print('Response: ' + resp_text)
         except:
             if self.debug:
-                print('Response: ' + resp.text)
-            resp_text = json.loads(resp.text)
+                print(f"Status code: {resp.status_code}, response: {resp.text}")
 
+            if resp.text and len(resp.text) > 0:
+                try:
+                    resp_text = json.loads(resp.text)
+                except:
+                    resp_text = resp.text
+            else:
+                resp_text = "(Empty response)"
         return resp.status_code, resp_text
 
     def _sign_request(self, method, url, headers, params=None, payload=None):
