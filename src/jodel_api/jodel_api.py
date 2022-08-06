@@ -16,32 +16,48 @@ import json
 import random
 import requests
 from urllib.parse import urlparse
-from jodel_api import gcmhack
-import time
 
 s = requests.Session()
+
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class JodelAccount:
     post_colors = ['9EC41C', 'FF9908', 'DD5F5F', '8ABDB0', '06A3CB', 'FFBA00']
 
-    api_url = "https://api.go-tellm.com/api{}"
+    api_url = "https://api.jodelapis.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
     secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
     version = '7.51'
+    client_type = 'ios_{}'
 
     access_token = None
     device_uid = None
 
     debug = False
 
-    def __init__(self, lat, lng, city, _secret=secret, _version=version, country=None, name=None,
+    def __init__(self, lat, lng, city, _secret=None, _version=None, _client_id=None, country=None, name=None,
                  update_location=True,
                  access_token=None, device_uid=None, refresh_token=None, distinct_id=None, expiration_date=None,
-                 is_legacy=True, _debug=False, **kwargs):
+                 is_legacy=True, _debug=False, email_fetch=None, email_address=None, _client_type=None, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)
 
-        self.version = _version
+        self.email_address = email_address
+        self.email_fetch = email_fetch
+
+        if _secret:
+            self.secret = _secret
+
+        if _version:
+            self.version = _version
+
+        if _client_id:
+            self.client_id = _client_id
+
+        if _client_type:
+            self.client_type = _client_type
 
         self.debug = _debug
 
@@ -66,15 +82,12 @@ class JodelAccount:
 
     def _send_request(self, method, endpoint, params=None, payload=None, **kwargs):
         url = self.api_url.format(endpoint)
-        headers = {'User-Agent': 'Jodel/ (iPhone; iOS 12.5.2; Scale/2.00)'.format(self.version)}
+        headers = {'User-Agent': 'python-requests / jodel_api {} (https://github.com/JodelRaccoons/jodel_api/)'.format(
+            self.version)}
         if self.access_token:
             headers['Authorization'] = 'Bearer ' + self.access_token
         if 'v2/users' not in endpoint:
-            headers['X-Location'] = '{0:.4f};{1:.4f}'.format(self.lat, self.lng)
-
-        if 'upvote' in endpoint and params is None:
-            params = dict()
-            params['home'] = False
+            headers['X-Location'] = '{0:.6f};{1:.6f}'.format(self.lat, self.lng)
 
         if payload is None:
             payload = {}
@@ -83,6 +96,7 @@ class JodelAccount:
             self._sign_request(method, url, headers, params, payload)
             headers['Content-Type'] = 'application/json; charset=UTF-8'
             headers['Accept-Encoding'] = 'gzip, deflate'
+            headers['X-Location-Type'] = 'local'
             if self.debug:
                 print('Requesting {}'.format(url, payload))
                 print('     Endpoint: {}'.format(endpoint))
@@ -90,19 +104,29 @@ class JodelAccount:
                 print('     Method: {}'.format(method))
                 print('     Headers: {}'.format(headers))
                 print('     Parameters: {}'.format(params))
-            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,**kwargs)
+            proxies = {
+                'http': 'http://127.0.0.1:8081',
+                'https': 'http://127.0.0.1:8081'
+            }
+            resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
+                             #proxies=proxies,
+                             #verify=False,
+                             **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
 
         try:
-            resp_text = resp.json()
-            if self.debug:
-                print('Response: ' + resp_text)
-                pass
+            if resp.status_code == 204:
+                return resp.status_code,
+
+            if resp.text:
+                resp_text = resp.json()
+                if self.debug:
+                    print('Response: ' + resp_text)
         except:
             if self.debug:
                 print('Response: ' + resp.text)
-            resp_text = resp.text
+            resp_text = json.loads(resp.text)
 
         return resp.status_code, resp_text
 
@@ -115,15 +139,19 @@ class JodelAccount:
                urlparse(url).path,
                self.access_token if self.access_token else "%"]
         if 'v2/users' not in url:
-            req.append('{0:.4f};{1:.4f}'.format(self.lat, self.lng))
+            req.append('{0:.6f};{1:.6f}'.format(self.lat, self.lng))
         req.append(timestamp),
         req.append("%".join(sorted("{}%{}".format(key, value) for key, value in (params if params else {}).items()))),
         req.append(json.dumps(payload) if payload else '{}')
 
         secret, version = self.secret, self.version
 
-        signature = hmac.new(secret, "%".join(req).encode("utf-8"), sha1).hexdigest().upper()
-        headers['X-Client-Type'] = 'ios_{}'.format(version)
+        hmac_input = "%".join(req).encode("utf-8").strip()
+        if self.debug:
+            print("HMAC Input", hmac_input)
+            print("HMAC Key", self.secret, "version", self.version)
+        signature = hmac.new(secret, hmac_input, sha1).hexdigest().upper()
+        headers['X-Client-Type'] = self.client_type.format(version)
         headers['X-Api-Version'] = '0.2'
         headers['X-Timestamp'] = timestamp
         headers['X-Authorization'] = 'HMAC ' + signature
@@ -181,40 +209,6 @@ class JodelAccount:
     def send_push_token(self, push_token, **kwargs):
         payload = {"client_id": self.client_id, "push_token": push_token}
         return self._send_request("PUT", "/v2/users/pushToken", payload=payload, **kwargs)
-
-    def verify_push(self, server_time, verification_code, **kwargs):
-        payload = {"server_time": server_time, "verification_code": verification_code}
-        return self._send_request("POST", "/v3/user/verification/push", payload=payload, **kwargs)
-
-    def verify(self, android_account=None, **kwargs):
-        if not android_account:
-            android_account = gcmhack.AndroidAccount(**kwargs)
-            time.sleep(5)
-
-        token = android_account.get_push_token(**kwargs)
-
-        for i in range(3):
-            r = self.send_push_token(token, **kwargs)
-            if r[0] != 204:
-                return r
-
-            try:
-                verification = self._read_verificiation(android_account)
-
-                status, r = self.verify_push(verification['server_time'], verification['verification_code'], **kwargs)
-                if status == 200 or i == 2:
-                    return status, r
-            except gcmhack.GcmException:
-                if i == 2:
-                    raise
-
-    def _read_verificiation(self, android_account):
-        for j in range(3):
-            try:
-                return android_account.receive_verification_from_gcm()
-            except gcmhack.GcmException:
-                if j == 2:
-                    raise
 
     # ################# #
     # GET POSTS METHODS #
@@ -282,14 +276,14 @@ class JodelAccount:
         return self._get_posts('votes', skip, limit, after, True, **kwargs)
 
     def post_search(self, message, skip=0, limit=60, **kwargs):
-        params = {"message": message, "skip": skip, "limit": limit }
+        params = {"message": message, "skip": skip, "limit": limit}
         return self._send_request("GET", "/v3/posts/textSearch?", params=params, **kwargs)
 
     # ################### #
     # SINGLE POST METHODS #
     # ################### #
 
-    def create_post(self, message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel="", **kwargs):
+    def create_post(self, message=None, imgpath=None, b64img=None, color=None, ancestor=None, channel=None, **kwargs):
         if not imgpath and not message and not b64img:
             raise ValueError("One of message or imgpath must not be null.")
 
@@ -297,7 +291,7 @@ class JodelAccount:
                    "location": self.location_dict,
                    "ancestor": ancestor,
                    "message": message,
-                   "channel": channel}
+                   "channel_id": channel if channel else '5f8ebbb3fd37e500256f7a67'}
         if imgpath:
             with open(imgpath, "rb") as f:
                 imgdata = base64.b64encode(f.read()).decode("utf-8")
@@ -307,15 +301,19 @@ class JodelAccount:
 
         return self._send_request("POST", '/v3/posts/', payload=payload, **kwargs)
 
+    # endpoint in api version v2 is disabled
     def get_post_details(self, post_id, **kwargs):
-        return self._send_request("GET", '/v2/posts/{}/'.format(post_id), **kwargs)
+        return self.get_post_details_v3(post_id, **kwargs)
 
     def get_post_details_v3(self, post_id, skip=0, **kwargs):
         return self._send_request("GET", '/v3/posts/{}/details'.format(post_id),
-                                  params={'details': 'true', 'reply': skip}, **kwargs)
+                                  params={'details': True, 'reply': skip}, **kwargs)
 
-    def upvote(self, post_id, **kwargs):
-        return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), **kwargs)
+    def upvote(self, post_id, home=False, explorer=False, isRecommended=False, section='Main', sorting='newest',
+               filter='Now', **kwargs):
+        params = {'home': home, 'explorer': explorer, 'isRecommended': isRecommended, 'section': section,
+                  'sorting': sorting, 'filter': filter}
+        return self._send_request("PUT", '/v2/posts/{}/upvote'.format(post_id), params=params, **kwargs)
 
     def downvote(self, post_id, **kwargs):
         return self._send_request("PUT", '/v2/posts/{}/downvote/'.format(post_id), **kwargs)
@@ -391,6 +389,12 @@ class JodelAccount:
     # ############ #
     # USER METHODS #
     # ############ #
+
+    def set_user_language(self, feed_languages=None):
+        if feed_languages is None:
+            feed_languages = ["en", "ar", "de", "fi", "other"]
+        return self._send_request('PUT', '/v3/user/language',
+                                  payload={"language": "en-us", "feed_languages": feed_languages})
 
     def set_location(self, lat, lng, city, country=None, name=None, **kwargs):
         self.lat, self.lng, self.location_dict = lat, lng, self._get_location_dict(lat, lng, city, country)

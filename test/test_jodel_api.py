@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import (absolute_import, print_function, unicode_literals)
-import jodel_api
-from random import uniform, choice
-import datetime
+
 import base64
-import pytest
-from string import ascii_lowercase
-from mock import MagicMock, patch
-import builtins
-import requests
+import datetime
 import os
-from flaky import flaky
 import time
+from random import uniform, choice
+from string import ascii_lowercase
+
+import pytest
+from flaky import flaky
+from mock import MagicMock, patch
+
+import jodel_api
 
 lat, lng, city = 49.021785, 12.103129, "Regensburg"
 test_channel = "WasGehtHeute?"
