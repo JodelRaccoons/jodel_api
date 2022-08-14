@@ -28,7 +28,7 @@ class MailAuth:
         firebase_token = self._redeem_oob(oob_token, self.mail_address)
         fresh_token = self._refresh_tokens(firebase_token['refreshToken'])
 
-        return fresh_token['access_token']
+        return fresh_token
 
     def _request_login(self, email: str) -> Union[bool, str]:
         url = f"{self.baseURL}/identitytoolkit/v3/relyingparty/getOobConfirmationCode"

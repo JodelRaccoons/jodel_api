@@ -31,12 +31,12 @@ class JodelAccount:
 
     api_url = "https://api.jodelapis.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
-    firebase_uid = 'jtNECbcwmfPGgQVuyKVPpsW8UIE3'
     secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
     version = '7.51'
     client_type = 'ios_{}'
 
     access_token = None
+    refresh_token = None
     device_uid = None
 
     debug = False
@@ -433,8 +433,8 @@ class iOSJodelAccount(JodelAccount):
 
 class AndroidJodelAccount(JodelAccount):
     def __init__(self, lat, lng, city, **kwargs):
-        secret = 'PohIBVvuWFhSLydTFZSjDMWmHrpRQuEGEBPfgIxB'.encode('ascii')
-        version = '8.0.1'
+        secret = 'uNvXCTsaGForyheiAychONmYhipdfktjGcTSxzux'.encode('ascii')
+        version = '8.1.2'
         client_type = 'android_{}'
         super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type,
                          _client_id='81e8a76e-1e02-4d17-9ba0-8a7020261b26', **kwargs)
@@ -455,41 +455,44 @@ class AndroidJodelAccount(JodelAccount):
                     else:
                         time.sleep(1)
         """
-        if not self.email_address:
-            self.email_address = input("No email address is given, please enter it manually: ")
-        if not self.email_fetch:
-            def email_fetch(email):
-                return input("Please enter the link found in the email: ")
-
-            self.email_fetch = email_fetch
-        auth = MailAuth(self.email_address, self.email_fetch)
-        firebase_token = auth.generate_firebase_token()
-
-        if not self.device_uid:
-            print("Creating new account.")
-            self.is_legacy = False
-            self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
-
-        payload = {"firebase_uid": self.firebase_uid,
-                   "firebaseJWT": firebase_token,
-                   "location": self.location_dict,
-                   "device_uid": self.device_uid,
-                   "language": "de-DE",
-                   "client_id": self.client_id}
-
-        print('Creating account with data {}'.format(payload))
-
-        status_code, response = self._send_request("POST", "/v2/users", payload=payload, **kwargs)
-        if self.debug:
-            print('Refresh all tokens response: ', response)
-        if status_code == 200:
-            self.access_token = response['access_token']
-            self.expiration_date = response['expiration_date']
-            self.refresh_token = response['refresh_token']
-            self.distinct_id = response['distinct_id']
+        if self.refresh_token:
+            return super().refresh_all_tokens()
         else:
-            raise Exception(response)
-        return status_code, response
+            if not self.email_address:
+                self.email_address = input("No email address is given, please enter it manually: ")
+            if not self.email_fetch:
+                def email_fetch(email):
+                    return input("Please enter the link found in the email: ")
+
+                self.email_fetch = email_fetch
+            auth = MailAuth(self.email_address, self.email_fetch)
+            firebase_token = auth.generate_firebase_token()
+
+            if not self.device_uid:
+                print("Creating new account.")
+                self.is_legacy = False
+                self.device_uid = ''.join(random.choice('abcdef0123456789') for _ in range(64))
+
+            payload = {"firebase_uid": firebase_token['user_id'],
+                       "firebaseJWT": firebase_token['access_token'],
+                       "location": self.location_dict,
+                       "device_uid": self.device_uid,
+                       "language": "de-DE",
+                       "client_id": self.client_id}
+
+            print('Creating account with data {}'.format(payload))
+
+            status_code, response = self._send_request("POST", "/v2/users", payload=payload, **kwargs)
+            if self.debug:
+                print('Refresh all tokens response: ', response)
+            if status_code == 200:
+                self.access_token = response['access_token']
+                self.expiration_date = response['expiration_date']
+                self.refresh_token = response['refresh_token']
+                self.distinct_id = response['distinct_id']
+            else:
+                raise Exception(response)
+            return status_code, response
 
 
 # helper function to mock input
