@@ -30,6 +30,6 @@ setup(name='jodel_api',
       package_dir={'': 'src'},
       install_requires=['requests', 'future', 'mock', 'varint', 'protobuf==3.20.1'],
       packages=find_packages('src'),
-      setup_requires=['pytest-runner', ],
-      tests_require=['pytest', 'flaky'],
+      setup_requires=[],
+      tests_require=[],
       zip_safe=False)

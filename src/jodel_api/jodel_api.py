@@ -31,8 +31,8 @@ class JodelAccount:
 
     api_url = "https://api.jodelapis.com/api{}"
     client_id = 'cd871f92-a23f-4afc-8fff-51ff9dc9184e'
-    secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
-    version = '7.51'
+    secret = 'qmRmkPAqDwlsEHryfwLVvMjMtqCTTVgLmaJNWfJi'.encode('ascii')
+    version = '7.64'
     client_type = 'ios_{}'
 
     access_token = None
@@ -109,13 +109,13 @@ class JodelAccount:
                 print('     Method: {}'.format(method))
                 print('     Headers: {}'.format(headers))
                 print('     Parameters: {}'.format(params))
-            proxies = {
-                'http': 'http://127.0.0.1:8081',
-                'https': 'http://127.0.0.1:8081'
-            }
+            #proxies = {
+            #    'http': 'http://127.0.0.1:8081',
+            #    'https': 'http://127.0.0.1:8081'
+            #}
             resp = s.request(method=method, url=url, params=params, json=payload, headers=headers,
                              #proxies=proxies,
-                             #verify=False,
+                             verify=False,
                              **kwargs)
             if resp.status_code != 502:  # Retry on error 502 "Bad Gateway"
                 break
@@ -424,9 +424,7 @@ class JodelAccount:
 
 
 class iOSJodelAccount(JodelAccount):
-    def __init__(self, lat, lng, city, **kwargs):
-        secret = 'YEKawcOEwzigovvWEFkBVWPIsgHhnIFmfMtfjYLS'.encode('ascii')
-        version = '7.51'
+    def __init__(self, lat, lng, city, secret='qmRmkPAqDwlsEHryfwLVvMjMtqCTTVgLmaJNWfJi'.encode('ascii'), version='7.64', **kwargs):
         client_type = 'ios_{}'
         super().__init__(lat, lng, city, _secret=secret, _version=version, _client_type=client_type, **kwargs)
 
